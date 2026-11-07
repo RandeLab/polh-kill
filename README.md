@@ -197,7 +197,7 @@ im NVS des ESP und werden über das Captive Portal eingegeben. Bitte so lassen, 
 
 *Ze cheese is not ze goal. Ze cheese is ze ideology.*
 
-[▶ **Listen to ze interview** (2 min, mp3)](data/interview.mp3)
+[▶ **Listen to ze interview** (2 min, mp3)](https://raw.githubusercontent.com/RandeLab/polh-kill/main/data/interview.mp3)
 
 RandeLab · GPL-3.0 · hack, remix, share
 
