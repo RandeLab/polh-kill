@@ -25,6 +25,7 @@ const DE = {
   tgUnpair: 'Chat entkoppeln', sysTitle: 'System', wifiSetup: '📶 WLAN / Bot einrichten', ota: '⚡ OTA-Update',
   portal: 'Hotspot öffnen', reboot: 'neu starten', noEvents: 'Noch nichts passiert. Absolut nichts.',
   waiting: 'Warte auf', doItNow: 'jetzt machen!', kept: 'gespeichert', discarded: 'verworfen', saved: 'gespeichert',
+  interview: '▶ Interview anhören',
   confirmWipe: 'Wirklich den ganzen Datensatz löschen?', confirmReboot: 'Neu starten?', confirmPortal: 'Hotspot öffnen?',
 };
 let lang = localGet('polh-lang') || 'en';
@@ -344,7 +345,7 @@ function onMessage(m) {
     live.v.push(...m.v); live.v.splice(0, live.v.length - 500);
     live.thr = m.thr; live.base = m.base; live.dirty = true;
   } else if (m.t === 'event') {
-    recent.unshift(m.e); recent = recent.slice(0, 6); renderEvents();
+    recent = [m.e, ...recent.filter(x => x.id !== m.e.id)].slice(0, 6); renderEvents();
     if (m.e.candidate) showCandidate(m.e);
     loadStatus();
   } else if (m.t === 'lab') {
@@ -366,6 +367,10 @@ function init() {
   $('#btnLang').onclick = () => { lang = lang === 'de' ? 'en' : 'de'; localSet('polh-lang', lang); applyLang(); renderEvents(); };
   applyLang();
   $('#quote').textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  const aud = $('#audInterview'), btnI = $('#btnInterview');
+  const labelI = () => { btnI.textContent = aud.paused ? t('interview', '▶ listen to ze interview') : '⏸ pause'; };
+  btnI.onclick = () => { aud.paused ? aud.play().catch(() => toast('❌ audio')) : aud.pause(); };
+  aud.onplay = aud.onpause = aud.onended = labelI;
   window.addEventListener('hashchange', showTab);
   window.addEventListener('resize', () => drawLive(true));
 
