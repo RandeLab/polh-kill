@@ -79,6 +79,7 @@ void begin() {
     p.end();
   }
   dataset::begin();
+  classesBegin();
   rebuildModel();
   applySettings();
   sensor = createAccel();
@@ -127,8 +128,8 @@ void loop() {
     pushRecent(e);
   }
   Serial.printf("[Event %s] #%u peak %.2f g -> %s (snap %.0f %%, %s)%s\n",
-                CLASS_EMOJI[e.pred.cls], (unsigned)w->id, powf(10, e.feat[F_PEAK_LOG]),
-                CLASS_NAMES[e.pred.cls], e.pred.snapProb * 100, METHOD_NAMES[e.pred.method],
+                classEmoji(e.pred.cls), (unsigned)w->id, powf(10, e.feat[F_PEAK_LOG]),
+                className(e.pred.cls), e.pred.snapProb * 100, METHOD_NAMES[e.pred.method],
                 e.candidate ? " [lab]" : "");
   statusLed::flashEvent(e.pred.snapProb >= settings.alertProb);
   web::notifyEvent(e);
@@ -150,7 +151,7 @@ const RecentEvent* findEvent(uint32_t id) { return findMutable(id); }
 
 void armTest(int label) {
   Guard g;
-  armedLabel = constrain(label, 0, NUM_CLASSES - 1);
+  armedLabel = constrain(label, 0, classCount() - 1);
   armedAt = millis();
 }
 
@@ -168,7 +169,7 @@ uint32_t testRemainingMs() {
 }
 
 uint32_t labelEvent(uint32_t eventId, int label) {
-  if (label < 0 || label >= NUM_CLASSES) return 0;
+  if (label < 0 || label >= classCount()) return 0;
   Guard g;
   RecentEvent* e = findMutable(eventId);
   if (!e) return 0;
@@ -184,7 +185,7 @@ uint32_t labelEvent(uint32_t eventId, int label) {
   e->storedLabel = label;
   clf.add(e->feat, label);  // the recursive update
   Serial.printf("[Learn 🧠] event #%u stored as sample %u = %s (%u samples)\n", (unsigned)eventId,
-                (unsigned)id, CLASS_NAMES[label], (unsigned)clf.total());
+                (unsigned)id, className(label), (unsigned)clf.total());
   return id;
 }
 
@@ -210,6 +211,26 @@ bool deleteSample(uint32_t sampleId) {
   if (!dataset::remove(sampleId)) return false;
   for (int i = 0; i < recentN; i++)
     if (recent[i].sampleId == sampleId) { recent[i].sampleId = 0; recent[i].storedLabel = -1; }
+  rebuildModel();
+  return true;
+}
+
+// Delete a custom class. Only allowed while it has no samples; samples of
+// classes above it move down one index so their labels stay correct.
+bool deleteClass(int idx, String& err) {
+  Guard g;
+  if (idx < builtinClassCount() || idx >= classCount()) { err = "built-in classes cannot be deleted"; return false; }
+  if (clf.count(idx) > 0) { err = "class still has samples - relabel or delete them first"; return false; }
+  std::vector<SampleRec> move;
+  dataset::forEach([&](const SampleRec& r) { if (r.label > idx) move.push_back(r); });
+  for (auto& r : move) dataset::relabel(r.id, r.label - 1);
+  for (int i = 0; i < recentN; i++) {
+    if (recent[i].storedLabel > idx) recent[i].storedLabel--;
+    if (recent[i].testLabel > idx) recent[i].testLabel--;
+    if (recent[i].pred.cls >= idx) recent[i].pred.cls = 0;
+  }
+  if (armedLabel >= idx) armedLabel = -1;
+  if (!classRemove(idx, err)) return false;
   rebuildModel();
   return true;
 }
@@ -255,15 +276,15 @@ void eventToJson(const RecentEvent& e, JsonObject o) {
   o["ts"] = (uint32_t)e.win->ts;
   o["ago_ms"] = millis() - e.win->uptimeMs;
   o["peak_g"] = powf(10, e.feat[F_PEAK_LOG]);
-  o["cls"] = CLASS_NAMES[e.pred.cls];
+  o["cls"] = className(e.pred.cls);
   o["snap_p"] = e.pred.snapProb;
   o["method"] = METHOD_NAMES[e.pred.method];
   o["candidate"] = e.candidate;
-  if (e.testLabel >= 0) o["test_label"] = CLASS_NAMES[e.testLabel];
-  if (e.storedLabel >= 0) o["stored_label"] = CLASS_NAMES[e.storedLabel];
+  if (e.testLabel >= 0) o["test_label"] = className(e.testLabel);
+  if (e.storedLabel >= 0) o["stored_label"] = className(e.storedLabel);
   o["sample_id"] = e.sampleId;
   JsonObject probs = o["probs"].to<JsonObject>();
-  for (int c = 0; c < NUM_CLASSES; c++) probs[CLASS_NAMES[c]] = e.pred.probs[c];
+  for (int c = 0; c < classCount(); c++) probs[className(c)] = e.pred.probs[c];
   JsonObject f = o["features"].to<JsonObject>();
   for (int i = 0; i < NFEAT; i++) f[FEATURE_NAMES[i]] = e.feat[i];
 }
@@ -305,7 +326,7 @@ void statusToJson(JsonObject o) {
   a["last_snap_ago_ms"] = st.lastSnapMs ? millis() - st.lastSnapMs : 0;
   a["last_snap_ts"] = (uint32_t)st.lastSnapTs;
   JsonObject l = o["lab"].to<JsonObject>();
-  l["armed_label"] = armedLabel >= 0 ? CLASS_NAMES[armedLabel] : nullptr;
+  l["armed_label"] = armedLabel >= 0 ? className(armedLabel) : nullptr;
   l["remaining_ms"] = testRemainingMs();
   l["samples"] = clf.total();
   JsonObject t = o["telegram"].to<JsonObject>();
@@ -324,10 +345,10 @@ void modelToJson(JsonObject o) {
   Guard g;
   o["total"] = clf.total();
   JsonArray cls = o["classes"].to<JsonArray>();
-  for (int c = 0; c < NUM_CLASSES; c++) {
+  for (int c = 0; c < classCount(); c++) {
     JsonObject k = cls.add<JsonObject>();
-    k["name"] = CLASS_NAMES[c];
-    k["emoji"] = CLASS_EMOJI[c];
+    k["name"] = className(c);
+    k["emoji"] = classEmoji(c);
     k["n"] = clf.count(c);
     JsonArray m = k["mean"].to<JsonArray>();
     JsonArray sd = k["sd"].to<JsonArray>();
@@ -346,9 +367,9 @@ void modelToJson(JsonObject o) {
   loo["snap_fp"] = r.snapFp;
   loo["snap_fn"] = r.snapFn;
   JsonArray cm = loo["confusion"].to<JsonArray>();
-  for (int i = 0; i < NUM_CLASSES; i++) {
+  for (int i = 0; i < classCount(); i++) {
     JsonArray row = cm.add<JsonArray>();
-    for (int j = 0; j < NUM_CLASSES; j++) row.add(r.confusion[i][j]);
+    for (int j = 0; j < classCount(); j++) row.add(r.confusion[i][j]);
   }
 }
 

@@ -1,8 +1,16 @@
 /* polh-kill web UI — vanilla JS, no CDN (must work on the offline hotspot) */
 'use strict';
 
-const CLASSES = ['snap', 'bump', 'footstep', 'mouse', 'other'];
-const EMOJI = { snap: '💥', bump: '🤜', footstep: '👣', mouse: '🐭', other: '❓' };
+const BUILTIN = ['snap', 'bump', 'footstep', 'mouse', 'other'];
+let CLASSES = BUILTIN.slice();  // replaced by /api/classes (built-in + custom)
+let EMOJI = { snap: '💥', bump: '🤜', footstep: '👣', mouse: '🐭', other: '❓' };
+let classInfo = [];
+// caught in the bar (soft vs. hard target damps the ring-down differently),
+// then animals around the trap, then household noise
+const EMOJI_PICKS = [
+  '👆', '🥒', '🌭', '🐁', '🥕', '🧀', '✏️', '🪵', '🥄', '🧽',
+  '🐀', '🐈', '🐕', '🐦', '🦔', '🪳', '🕷️',
+  '🚪', '🧺', '🔨', '🚗', '💨', '🌧️', '🌀'];
 const MOCK = location.protocol === 'file:' || new URLSearchParams(location.search).has('mock');
 
 // ---------------- i18n (English default, optional German) ----------------
@@ -25,7 +33,8 @@ const DE = {
   tgUnpair: 'Chat entkoppeln', sysTitle: 'System', wifiSetup: '📶 WLAN / Bot einrichten', ota: '⚡ OTA-Update',
   portal: 'Hotspot öffnen', reboot: 'neu starten', noEvents: 'Noch nichts passiert. Absolut nichts.',
   waiting: 'Warte auf', doItNow: 'jetzt machen!', kept: 'gespeichert', discarded: 'verworfen', saved: 'gespeichert',
-  interview: '▶ Interview anhören',
+  interview: '▶ Interview anhören', newClass: '＋ neue Klasse', addClass: 'Klasse anlegen',
+  classRules: 'Name: a-z, 0-9, - und _ (max. 16). Löschen geht, solange die Klasse keine Beispiele hat.',
   confirmWipe: 'Wirklich den ganzen Datensatz löschen?', confirmReboot: 'Neu starten?', confirmPortal: 'Hotspot öffnen?',
 };
 let lang = localGet('polh-lang') || 'en';
@@ -212,12 +221,40 @@ function renderEvents() {
 // ---------------- learning lab ----------------
 let labLabel = localGet('polh-lab-label') || 'snap';
 let candidate = null;
+async function loadClasses() {
+  try { classInfo = await api.get('/api/classes'); } catch (e) { return; }
+  CLASSES = classInfo.map(c => c.name);
+  EMOJI = Object.fromEntries(classInfo.map(c => [c.name, c.emoji]));
+  if (!CLASSES.includes(labLabel)) labLabel = 'snap';
+  renderLabChips(); renderEvents();
+}
+async function addClass() {
+  const name = $('#newName').value.trim().toLowerCase(), emoji = $('#newEmoji').value.trim() || '🏷️';
+  if (!/^[a-z0-9_-]{1,16}$/.test(name)) { toast('❌ ' + t('classRules', 'name: a-z, 0-9, - and _ (max 16)')); $('#newName').focus(); return; }
+  try { await api.post('/api/classes/add', { name, emoji }); } catch (e) { toast('❌ ' + e.message); return; }
+  labLabel = name; localSet('polh-lab-label', name);
+  $('#newName').value = ''; $('#newEmoji').value = '';
+  toast(`${emoji} ${name} ✅`);
+  loadClasses();
+}
 function renderLabChips() {
   const box = $('#labChips'); box.innerHTML = '';
   CLASSES.forEach(c => {
     const ch = el('button', { className: 'chip' + (c === labLabel ? ' sel' : ''), textContent: `${EMOJI[c]} ${c}` });
     ch.onclick = () => { labLabel = c; localSet('polh-lab-label', c); renderLabChips(); };
     box.append(ch);
+  });
+  const plus = el('button', { className: 'chip', textContent: t('newClass', '＋ new class') });
+  plus.onclick = () => { $('#classForm').classList.toggle('hide'); $('#newName').focus(); };
+  box.append(plus);
+  const cl = $('#customList'); cl.innerHTML = '';
+  classInfo.filter(c => !c.builtin).forEach(c => {
+    const b = el('button', { className: 'chip', textContent: `${c.emoji} ${c.name} (${c.n}) ✕`, title: 'delete' });
+    b.onclick = async () => {
+      if (!confirm(`${c.emoji} ${c.name} ✕ ?`)) return;
+      try { await api.post('/api/classes/delete', { name: c.name }); loadClasses(); } catch (e) { toast('❌ ' + e.message); }
+    };
+    cl.append(b);
   });
   const sel = $('#selKeepAs'); sel.innerHTML = '';
   CLASSES.forEach(c => sel.append(el('option', { value: c, textContent: `${EMOJI[c]} ${c}` })));
@@ -277,6 +314,7 @@ async function loadModel() {
     tb.append(el('tr', {}, `<td>${c.emoji} ${c.name}</td><td class="num">${c.n}</td><td><div class="bar"><i style="width:${c.n / maxN * 100}%"></i></div></td><td class="num">${peak}</td><td class="num">${dur}</td>`));
   });
   $('#modelSummary').textContent = `${m.total} samples`;
+  loadClasses();
   const l = m.loo;
   const prec = l.snap_tp + l.snap_fp ? l.snap_tp / (l.snap_tp + l.snap_fp) : 0;
   const rec = l.snap_tp + l.snap_fn ? l.snap_tp / (l.snap_tp + l.snap_fn) : 0;
@@ -374,12 +412,16 @@ function init() {
   window.addEventListener('hashchange', showTab);
   window.addEventListener('resize', () => drawLive(true));
 
-  ['#simChips', '#labSimChips'].forEach(sel => CLASSES.forEach(c => {
+  ['#simChips', '#labSimChips'].forEach(sel => BUILTIN.forEach(c => {
     const b = el('button', { className: 'chip', textContent: `${EMOJI[c]} ${c}` });
     b.onclick = () => api.post('/api/sim/inject', { label: c });
     $(sel).append(b);
   }));
   renderLabChips();
+  EMOJI_PICKS.forEach(e => { const b = el('button', { className: 'chip', textContent: e }); b.onclick = () => { $('#newEmoji').value = e; }; $('#emojiPicks').append(b); });
+  $('#btnAddClass').onclick = addClass;
+  $('#newName').addEventListener('keydown', ev => { if (ev.key === 'Enter') addClass(); });
+  loadClasses();
   $('#btnArm').onclick = armTest;
   $('#btnCancel').onclick = async () => { await api.post('/api/lab/cancel'); updateLab(null, 0); };
   $('#btnKeep').onclick = () => candidate && keepCandidate(candidate.test_label);

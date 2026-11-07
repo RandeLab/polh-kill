@@ -5,6 +5,7 @@
   if (!(location.protocol === 'file:' || new URLSearchParams(location.search).has('mock'))) return;
   const CL = ['snap', 'bump', 'footstep', 'mouse', 'other'];
   const EM = { snap: '💥', bump: '🤜', footstep: '👣', mouse: '🐭', other: '❓' };
+  const NB = CL.length;
   const subs = [];
   const cfg = { k_sigma: 6, min_g: 0.05, snap_g: 1, alert_p: 0.7, unsure_p: 0.35, armed: true, notify_unsure: true, daily: true };
   const st = { events: 0, snaps: 3, armed: null, armedAt: 0, nextId: 1, nextSample: 1 };
@@ -90,6 +91,7 @@
         telegram: { configured: true, paired: true, bot: 'PolhKillBot', last_error: '' }, armed: cfg.armed, fs: { used: 120e3, total: 6e6 } };
       if (p === '/api/config') return { ...cfg };
       if (p === '/api/events') return recent;
+      if (p === '/api/classes') return CL.map((c, i) => ({ name: c, emoji: EM[c], builtin: i < NB, n: samples.filter(s => s.label === c).length }));
       if (p === '/api/model') return model();
       if (p === '/api/samples') return samples.map(({ ev, ...s }) => s);
       if (p === '/api/window') {
@@ -101,6 +103,18 @@
       throw new Error('mock: ' + p);
     },
     async post(path, params) {
+      if (path === '/api/classes/add') {
+        const n = (params.name || '').toLowerCase();
+        if (!/^[a-z0-9_-]{1,16}$/.test(n)) throw new Error('name: 1-16 chars, a-z 0-9 - _');
+        if (CL.includes(n)) throw new Error('class exists');
+        CL.push(n); EM[n] = params.emoji || '🏷️'; return { ok: true };
+      }
+      if (path === '/api/classes/delete') {
+        const i = CL.indexOf(params.name);
+        if (i < NB) throw new Error('built-in classes cannot be deleted');
+        if (samples.some(s => s.label === params.name)) throw new Error('class still has samples');
+        CL.splice(i, 1); return { ok: true };
+      }
       if (path === '/api/sim/inject') { inject(params.label); return { ok: true }; }
       if (path === '/api/lab/arm') { st.armed = params.label; st.armedAt = Date.now(); return { ok: true }; }
       if (path === '/api/lab/cancel') { st.armed = null; return { ok: true }; }

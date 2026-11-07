@@ -3,8 +3,6 @@
 #include <math.h>
 #include "features.h"
 
-const char* const CLASS_NAMES[NUM_CLASSES] = {"snap", "bump", "footstep", "mouse", "other"};
-const char* const CLASS_EMOJI[NUM_CLASSES] = {"💥", "🤜", "👣", "🐭", "❓"};
 const char* const METHOD_NAMES[3] = {"heuristic", "bayes", "bayes+rls"};
 
 namespace {
@@ -25,7 +23,7 @@ void Classifier::reset() {
 
 int Classifier::total() const {
   int t = 0;
-  for (int c = 0; c < NUM_CLASSES; c++) t += n_[c];
+  for (int c = 0; c < classCount(); c++) t += n_[c];
   return t;
 }
 
@@ -35,7 +33,7 @@ void Classifier::normalise(const float f[NFEAT], float x[NFEAT + 1]) {
 }
 
 void Classifier::add(const float f[NFEAT], int label, bool updateRls) {
-  if (label < 0 || label >= NUM_CLASSES) return;
+  if (label < 0 || label >= classCount()) return;
   n_[label]++;
   for (int i = 0; i < NFEAT; i++) {
     sum_[label][i] += f[i];
@@ -45,7 +43,7 @@ void Classifier::add(const float f[NFEAT], int label, bool updateRls) {
 }
 
 void Classifier::remove(const float f[NFEAT], int label) {
-  if (label < 0 || label >= NUM_CLASSES || n_[label] == 0) return;
+  if (label < 0 || label >= classCount() || n_[label] == 0) return;
   n_[label]--;
   for (int i = 0; i < NFEAT; i++) {
     sum_[label][i] -= f[i];
@@ -92,7 +90,7 @@ float Classifier::rlsOutput(const float f[NFEAT]) const {
 Prediction Classifier::predict(const float f[NFEAT]) const {
   Prediction p;
   int classesWithData = 0, snapN = n_[C_SNAP], otherN = 0;
-  for (int c = 0; c < NUM_CLASSES; c++) {
+  for (int c = 0; c < classCount(); c++) {
     if (n_[c] >= 1) classesWithData++;
     if (c != C_SNAP) otherN += n_[c];
   }
@@ -111,11 +109,11 @@ Prediction Classifier::predict(const float f[NFEAT]) const {
 
   // Gaussian naive Bayes with a variance floor and Laplace-smoothed priors
   const int N = total();
-  double logp[NUM_CLASSES];
+  double logp[MAX_CLASSES];
   double best = -1e300;
-  for (int c = 0; c < NUM_CLASSES; c++) {
+  for (int c = 0; c < classCount(); c++) {
     if (n_[c] == 0) { logp[c] = -1e300; continue; }
-    double lp = log((n_[c] + 1.0) / (N + NUM_CLASSES));
+    double lp = log((n_[c] + 1.0) / (N + classCount()));
     for (int i = 0; i < NFEAT; i++) {
       const double floorSd = (n_[c] < MIN_PER_CLASS ? 0.3 : 0.05) * FEATURE_SCALE[i];
       const double sd = max((double)stdev(c, i), floorSd);
@@ -126,8 +124,8 @@ Prediction Classifier::predict(const float f[NFEAT]) const {
     if (lp > best) { best = lp; p.cls = c; }
   }
   double norm = 0;
-  for (int c = 0; c < NUM_CLASSES; c++) norm += (logp[c] > -1e299) ? exp(logp[c] - best) : 0;
-  for (int c = 0; c < NUM_CLASSES; c++)
+  for (int c = 0; c < classCount(); c++) norm += (logp[c] > -1e299) ? exp(logp[c] - best) : 0;
+  for (int c = 0; c < classCount(); c++)
     p.probs[c] = (logp[c] > -1e299) ? exp(logp[c] - best) / norm : 0;
 
   p.rlsScore = rlsOutput(f);

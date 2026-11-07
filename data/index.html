@@ -56,6 +56,16 @@
   <div class="panel">
     <h2>1 · <span data-i18n="labStep1">What will you do?</span></h2>
     <div class="chips" id="labChips"></div>
+    <div id="classForm" class="hide" style="margin-top:12px">
+      <div class="row">
+        <input id="newEmoji" maxlength="8" placeholder="🐀" style="width:64px;text-align:center;font-size:1.3rem" aria-label="emoji">
+        <input id="newName" maxlength="16" placeholder="rat" style="flex:1;min-width:120px" aria-label="class name">
+        <button id="btnAddClass" data-i18n="addClass">add class</button>
+      </div>
+      <div class="chips" id="emojiPicks" style="margin-top:8px"></div>
+      <small class="muted" data-i18n="classRules">name: a-z, 0-9, - and _ (max 16). A class can be deleted while it has no samples.</small>
+      <div class="chips" id="customList" style="margin-top:8px"></div>
+    </div>
     <p class="muted" data-i18n="labHint">Pick a class, arm the test, then do exactly that to the trap (snap it, knock the table, walk past …). The next vibration becomes a training sample.</p>
   </div>
   <div class="panel armbox">
@@ -147,6 +157,7 @@
 <footer>
   <q id="quote"></q><br>
   <button class="small" id="btnInterview" data-i18n="interview" style="margin:8px 0">▶ listen to ze interview</button>
+  <a class="btn" href="interview.mp3" download="polh-kill-interview.mp3" style="padding:3px 9px;font-size:.8rem;border-width:1px">⬇ mp3</a>
   <audio id="audInterview" src="interview.mp3" preload="none"></audio><br>
   polh-kill <span id="ver"></span> · <a href="https://github.com/RandeLab/polh-kill">RandeLab/polh-kill</a> · GPL-3.0
 </footer>

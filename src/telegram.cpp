@@ -65,10 +65,10 @@ void sendNow(const String& chat, const String& text, const String& markup) {
 
 String labelKeyboard(uint32_t eventId) {
   String k = "{\"inline_keyboard\":[[";
-  for (int c = 0; c < NUM_CLASSES; c++) {
-    if (c == 3) k += "],[";
+  for (int c = 0; c < classCount(); c++) {
+    if (c > 0 && c % 3 == 0) k += "],[";
     else if (c > 0) k += ",";
-    k += "{\"text\":\"" + String(CLASS_EMOJI[c]) + " " + CLASS_NAMES[c] + "\",\"callback_data\":\"l:" +
+    k += "{\"text\":\"" + String(classEmoji(c)) + " " + className(c) + "\",\"callback_data\":\"l:" +
          eventId + ":" + c + "\"}";
   }
   return k + "]]}";
@@ -173,8 +173,8 @@ void handleCommand(const String& chat, String cmd) {
     String t = "📈 <b>pure numbers</b>\nevents since boot: " + String(s.events) +
                "\nsnaps since boot: " + String(s.snapsBoot) + "\nsnaps total: " + String(s.snapsTotal) +
                "\nlabelled samples: " + String(app::model().total());
-    for (int c = 0; c < NUM_CLASSES; c++)
-      t += "\n  " + String(CLASS_EMOJI[c]) + " " + CLASS_NAMES[c] + ": " + app::model().count(c);
+    for (int c = 0; c < classCount(); c++)
+      t += "\n  " + String(classEmoji(c)) + " " + className(c) + ": " + app::model().count(c);
     sendNow(chat, t, "");
   } else if (cmd.startsWith("/lab")) {
     sendNow(chat, "🧪 Ze learning lab: " + webLink() + "#lab\n(only from inside ze same WiFi)", "");
@@ -194,9 +194,9 @@ void handleCallback(const String& chat, const String& cbId, const String& data) 
     const int cls = data.substring(b + 1).toInt();
     const uint32_t sid = app::labelEvent(eventId, cls);
     if (sid) {
-      answer = String("Learned: ") + CLASS_NAMES[cls] + " ✅";
+      answer = String("Learned: ") + className(cls) + " ✅";
       sendNow(chat, "🧠 Thank you. Event #" + String(eventId) + " is now officially a <b>" +
-                        CLASS_NAMES[cls] + "</b>. I have " + String(app::model().total()) +
+                        className(cls) + "</b>. I have " + String(app::model().total()) +
                         " samples now, my worldview is updated.", "");
     } else {
       answer = "Event is too old, gone from memory";
@@ -315,8 +315,8 @@ void onEvent(const RecentEvent& e) {
          labelKeyboard(e.win->id));
   } else if (settings.notifyUnsure && p >= settings.unsureProb) {
     send("🤔 <b>Something happened.</b> *sniff*\nPeak " + String(peak, 2) + " g. I think it was <b>" +
-             CLASS_NAMES[e.pred.cls] + "</b> (snap " + fmtPct(p) + "). But what is a " +
-             CLASS_NAMES[e.pred.cls] + ", really? Tell me, so I learn:",
+             className(e.pred.cls) + "</b> (snap " + fmtPct(p) + "). But what is a " +
+             className(e.pred.cls) + ", really? Tell me, so I learn:",
          labelKeyboard(e.win->id));
   }
 }

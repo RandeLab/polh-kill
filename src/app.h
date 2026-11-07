@@ -63,6 +63,7 @@ bool discardEvent(uint32_t eventId);
 bool relabelSample(uint32_t sampleId, int label);
 bool deleteSample(uint32_t sampleId);
 void wipeDataset();
+bool deleteClass(int idx, String& err);
 void rebuildModel();
 LooResult leaveOneOut();
 

@@ -72,9 +72,9 @@ String param(AsyncWebServerRequest* r, const char* name) {
 }
 
 int parseLabel(const String& s) {
-  for (int c = 0; c < NUM_CLASSES; c++)
-    if (s.equalsIgnoreCase(CLASS_NAMES[c])) return c;
-  if (s.length() && isDigit(s[0])) return constrain(s.toInt(), 0, NUM_CLASSES - 1);
+  for (int c = 0; c < classCount(); c++)
+    if (s.equalsIgnoreCase(className(c))) return c;
+  if (s.length() && isDigit(s[0])) return constrain(s.toInt(), 0, classCount() - 1);
   return -1;
 }
 
@@ -168,6 +168,36 @@ void routesLab() {
     app::discardEvent(param(r, "event").toInt()) ? ok(r) : fail(r, "event");
   });
 
+  server.on("/api/classes", HTTP_GET, [](AsyncWebServerRequest* r) {
+    JsonDocument d;
+    JsonArray a = d.to<JsonArray>();
+    app::Guard g;
+    for (int c = 0; c < classCount(); c++) {
+      JsonObject o = a.add<JsonObject>();
+      o["name"] = className(c);
+      o["emoji"] = classEmoji(c);
+      o["builtin"] = c < builtinClassCount();
+      o["n"] = app::model().count(c);
+    }
+    sendJson(r, d);
+  });
+  server.on("/api/classes/add", HTTP_POST, [](AsyncWebServerRequest* r) {
+    String err;
+    int idx;
+    {
+      app::Guard g;
+      idx = classAdd(param(r, "name"), param(r, "emoji"), err);
+    }
+    if (idx < 0) return fail(r, err.c_str());
+    Serial.printf("[Classes 🏷️] new class %s %s\n", classEmoji(idx), className(idx));
+    ok(r);
+  });
+  server.on("/api/classes/delete", HTTP_POST, [](AsyncWebServerRequest* r) {
+    String err;
+    if (!app::deleteClass(classFind(param(r, "name")), err)) return fail(r, err.c_str());
+    ok(r);
+  });
+
   server.on("/api/events", HTTP_GET, [](AsyncWebServerRequest* r) {
     JsonDocument d;
     JsonArray a = d.to<JsonArray>();
@@ -209,7 +239,7 @@ void routesLab() {
     app::Guard g;
     dataset::forEach([&](const SampleRec& rec) {
       s->printf("%s{\"id\":%u,\"ts\":%u,\"label\":\"%s\",\"raw\":%s,\"peak_g\":%.3f}", first ? "" : ",",
-                (unsigned)rec.id, (unsigned)rec.ts, CLASS_NAMES[rec.label], (rec.flags & 1) ? "true" : "false",
+                (unsigned)rec.id, (unsigned)rec.ts, className(rec.label), (rec.flags & 1) ? "true" : "false",
                 powf(10, rec.feat[F_PEAK_LOG]));
       first = false;
     });
@@ -243,7 +273,7 @@ void routesLab() {
     s->print("\n");
     app::Guard g;
     dataset::forEach([&](const SampleRec& rec) {
-      s->printf("%u,%u,%s,%u,%d", (unsigned)rec.id, (unsigned)rec.ts, CLASS_NAMES[rec.label], rec.rateHz,
+      s->printf("%u,%u,%s,%u,%d", (unsigned)rec.id, (unsigned)rec.ts, className(rec.label), rec.rateHz,
                 rec.flags & 1);
       for (int i = 0; i < NFEAT; i++) s->printf(",%.5f", rec.feat[i]);
       s->print("\n");
@@ -376,6 +406,11 @@ void begin() {
     if (!uiOnFlash) return sendPage(r, PAGE_NO_UI);
     r->send(LittleFS, "/index.html", "text/html");
   });
+  // the static handler does not know .mp3 -> Safari refuses octet-stream audio
+  server.on("/interview.mp3", HTTP_GET, [](AsyncWebServerRequest* r) {
+    if (!LittleFS.exists("/interview.mp3")) return r->send(404);
+    r->send(LittleFS, "/interview.mp3", "audio/mpeg");
+  });
   if (uiOnFlash) server.serveStatic("/", LittleFS, "/").setCacheControl("max-age=60");
 
   server.onNotFound([](AsyncWebServerRequest* r) {
@@ -440,7 +475,7 @@ void notifyLab() {
   if (!ws.count()) return;
   const int l = app::testLabel();
   String s = "{\"t\":\"lab\",\"armed_label\":";
-  s += l >= 0 ? "\"" + String(CLASS_NAMES[l]) + "\"" : "null";
+  s += l >= 0 ? "\"" + String(className(l)) + "\"" : "null";
   s += ",\"remaining_ms\":" + String(app::testRemainingMs()) + ",\"samples\":" + String(app::model().total()) +
        ",\"gravity\":[" + String(detector.gx(), 3) + "," + String(detector.gy(), 3) + "," +
        String(detector.gz(), 3) + "]}";

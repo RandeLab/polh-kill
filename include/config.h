@@ -37,7 +37,7 @@ constexpr int   WARMUP_MS         = 2000;   // learn the noise floor before trig
 constexpr int   LIVE_RATE_HZ      = 50;     // live plot points per second
 
 // ---------------- learning ----------------
-constexpr int   NUM_CLASSES       = 5;      // see classifier.h for names
+constexpr int   MAX_CLASSES       = 12;     // 5 built-in + custom ones (classes.cpp)
 constexpr int   NFEAT             = 12;     // see features.h for names
 constexpr int   RECENT_EVENTS     = 6;      // raw windows kept in RAM
 constexpr int   MAX_RAW_ON_FLASH  = 300;    // raw windows kept in LittleFS (~6 KB each)

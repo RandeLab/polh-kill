@@ -4,25 +4,33 @@
 //  - Recursive least squares linear model for "snap vs. not snap"
 //  - Peak-g heuristic as long as there is not enough data
 #pragma once
+#include <Arduino.h>
 #include "config.h"
 
 enum EventClass { C_SNAP = 0, C_BUMP, C_FOOTSTEP, C_MOUSE, C_OTHER };
-extern const char* const CLASS_NAMES[NUM_CLASSES];
-extern const char* const CLASS_EMOJI[NUM_CLASSES];
+// class registry (classes.cpp): built-ins first, snap is always index 0
+void classesBegin();
+int classCount();
+int builtinClassCount();
+const char* className(int c);
+const char* classEmoji(int c);
+int classFind(const String& name);              // -1 if unknown
+int classAdd(String name, String emoji, String& err);  // -> new index or -1
+bool classRemove(int idx, String& err);
 
 enum Method { M_HEURISTIC = 0, M_BAYES, M_BAYES_RLS };
 extern const char* const METHOD_NAMES[3];
 
 struct Prediction {
   int cls = C_OTHER;             // most likely class
-  float probs[NUM_CLASSES] = {};  // naive-Bayes posterior (or heuristic)
+  float probs[MAX_CLASSES] = {};  // naive-Bayes posterior (or heuristic)
   float snapProb = 0;            // combined probability that this was a snap
   float rlsScore = 0;            // raw RLS output (+1 snap, -1 not)
   Method method = M_HEURISTIC;
 };
 
 struct LooResult {
-  int confusion[NUM_CLASSES][NUM_CLASSES] = {};  // [true][predicted]
+  int confusion[MAX_CLASSES][MAX_CLASSES] = {};  // [true][predicted]
   int total = 0, correct = 0;
   int snapTp = 0, snapFp = 0, snapFn = 0;
 };
@@ -45,9 +53,9 @@ class Classifier {
   float rlsOutput(const float f[NFEAT]) const;
   static void normalise(const float f[NFEAT], float x[NFEAT + 1]);
 
-  int n_[NUM_CLASSES] = {};
-  double sum_[NUM_CLASSES][NFEAT] = {};
-  double sumsq_[NUM_CLASSES][NFEAT] = {};
+  int n_[MAX_CLASSES] = {};
+  double sum_[MAX_CLASSES][NFEAT] = {};
+  double sumsq_[MAX_CLASSES][NFEAT] = {};
   static constexpr int D = NFEAT + 1;
   float w_[D] = {};
   float P_[D][D] = {};
