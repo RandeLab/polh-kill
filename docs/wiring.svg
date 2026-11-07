@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 680" font-family="Segoe UI,Roboto,sans-serif">
+<style>.t{font-size:14px;fill:#2C2C2A}.b{font-size:14px;font-weight:600;fill:#2C2C2A}.s{font-size:12px;fill:#5F5E5A}</style>
+<rect width="680" height="680" fill="#FFFFFF"/>
+<line x1="250" y1="60" x2="250" y2="408" stroke="#D85A30" stroke-width="3"/>
+<line x1="220" y1="156" x2="220" y2="522" stroke="#5F5E5A" stroke-width="3"/>
+<text class="s" x="250" y="44" text-anchor="middle">3V3 rail</text>
+<text class="s" x="220" y="542" text-anchor="middle">GND rail</text>
+<path d="M420 60 H250" fill="none" stroke="#D85A30" stroke-width="1.8"/>
+<path d="M420 522 H220" fill="none" stroke="#5F5E5A" stroke-width="1.8"/>
+<path d="M170 184 H250" fill="none" stroke="#D85A30" stroke-width="1.8"/>
+<path d="M170 408 H250" fill="none" stroke="#D85A30" stroke-width="1.8"/>
+<path d="M170 156 H220" fill="none" stroke="#5F5E5A" stroke-width="1.8"/>
+<path d="M170 240 H220" fill="none" stroke="#5F5E5A" stroke-width="1.8"/>
+<path d="M170 380 H220" fill="none" stroke="#5F5E5A" stroke-width="1.8"/>
+<path d="M170 212 H395 V192 H420" fill="none" stroke="#7F77DD" stroke-width="1.8"/>
+<path d="M170 324 H395 V302 H420" fill="none" stroke="#1D9E75" stroke-width="1.8"/>
+<path d="M170 352 H395 V368 H420" fill="none" stroke="#1D9E75" stroke-width="1.8" stroke-dasharray="6 3"/>
+<circle cx="250" cy="60" r="3.5" fill="#2C2C2A"/>
+<circle cx="220" cy="522" r="3.5" fill="#2C2C2A"/>
+<circle cx="250" cy="184" r="3.5" fill="#2C2C2A"/>
+<circle cx="250" cy="408" r="3.5" fill="#2C2C2A"/>
+<circle cx="220" cy="156" r="3.5" fill="#2C2C2A"/>
+<circle cx="220" cy="240" r="3.5" fill="#2C2C2A"/>
+<circle cx="220" cy="380" r="3.5" fill="#2C2C2A"/>
+<rect x="50" y="110" width="120" height="315" rx="6" fill="#E6F1FB" stroke="#185FA5"/>
+<text class="b" x="110" y="132" text-anchor="middle">MPU-92.65</text>
+<circle cx="170" cy="156" r="3" fill="#185FA5"/>
+<text class="b" x="158" y="161" text-anchor="end">FSYNC</text>
+<circle cx="170" cy="184" r="3" fill="#185FA5"/>
+<text class="b" x="158" y="189" text-anchor="end">NCS</text>
+<circle cx="170" cy="212" r="3" fill="#185FA5"/>
+<text class="b" x="158" y="217" text-anchor="end">INT</text>
+<circle cx="170" cy="240" r="3" fill="#185FA5"/>
+<text class="b" x="158" y="245" text-anchor="end">ADD</text>
+<circle cx="170" cy="268" r="3" fill="#185FA5"/>
+<text class="s" x="158" y="273" text-anchor="end">ECL</text>
+<text class="s" x="178" y="272">nc</text>
+<circle cx="170" cy="296" r="3" fill="#185FA5"/>
+<text class="s" x="158" y="301" text-anchor="end">EDA</text>
+<text class="s" x="178" y="300">nc</text>
+<circle cx="170" cy="324" r="3" fill="#185FA5"/>
+<text class="b" x="158" y="329" text-anchor="end">SDA</text>
+<circle cx="170" cy="352" r="3" fill="#185FA5"/>
+<text class="b" x="158" y="357" text-anchor="end">SCL</text>
+<circle cx="170" cy="380" r="3" fill="#185FA5"/>
+<text class="b" x="158" y="385" text-anchor="end">GND</text>
+<circle cx="170" cy="408" r="3" fill="#185FA5"/>
+<text class="b" x="158" y="413" text-anchor="end">VCC</text>
+<rect x="420" y="30" width="180" height="570" rx="6" fill="#2C2C2A" stroke="#000"/>
+<text x="510" y="120" text-anchor="middle" font-size="12" fill="#D3D1C7">ESP32-S3</text>
+<text x="510" y="138" text-anchor="middle" font-size="12" fill="#D3D1C7">N16R8</text>
+<circle cx="420" cy="60" r="3" fill="#B4B2A9"/>
+<text x="432" y="65" font-size="14" font-weight="600" fill="#FAC775">3V3</text>
+<circle cx="420" cy="82" r="3" fill="#B4B2A9"/>
+<text x="432" y="87" font-size="12" font-weight="400" fill="#D3D1C7">3V3</text>
+<circle cx="420" cy="104" r="3" fill="#B4B2A9"/>
+<text x="432" y="109" font-size="12" font-weight="400" fill="#D3D1C7">RST</text>
+<circle cx="420" cy="126" r="3" fill="#B4B2A9"/>
+<text x="432" y="131" font-size="12" font-weight="400" fill="#D3D1C7">4</text>
+<circle cx="420" cy="148" r="3" fill="#B4B2A9"/>
+<text x="432" y="153" font-size="12" font-weight="400" fill="#D3D1C7">5</text>
+<circle cx="420" cy="170" r="3" fill="#B4B2A9"/>
+<text x="432" y="175" font-size="12" font-weight="400" fill="#D3D1C7">6</text>
+<circle cx="420" cy="192" r="3" fill="#B4B2A9"/>
+<text x="432" y="197" font-size="14" font-weight="600" fill="#FAC775">7</text>
+<circle cx="420" cy="214" r="3" fill="#B4B2A9"/>
+<text x="432" y="219" font-size="12" font-weight="400" fill="#D3D1C7">15</text>
+<circle cx="420" cy="236" r="3" fill="#B4B2A9"/>
+<text x="432" y="241" font-size="12" font-weight="400" fill="#D3D1C7">16</text>
+<circle cx="420" cy="258" r="3" fill="#B4B2A9"/>
+<text x="432" y="263" font-size="12" font-weight="400" fill="#D3D1C7">17</text>
+<circle cx="420" cy="280" r="3" fill="#B4B2A9"/>
+<text x="432" y="285" font-size="12" font-weight="400" fill="#D3D1C7">18</text>
+<circle cx="420" cy="302" r="3" fill="#B4B2A9"/>
+<text x="432" y="307" font-size="14" font-weight="600" fill="#FAC775">8</text>
+<circle cx="420" cy="324" r="3" fill="#B4B2A9"/>
+<text x="432" y="329" font-size="12" font-weight="400" fill="#D3D1C7">3</text>
+<circle cx="420" cy="346" r="3" fill="#B4B2A9"/>
+<text x="432" y="351" font-size="12" font-weight="400" fill="#D3D1C7">46</text>
+<circle cx="420" cy="368" r="3" fill="#B4B2A9"/>
+<text x="432" y="373" font-size="14" font-weight="600" fill="#FAC775">9</text>
+<circle cx="420" cy="390" r="3" fill="#B4B2A9"/>
+<text x="432" y="395" font-size="12" font-weight="400" fill="#D3D1C7">10</text>
+<circle cx="420" cy="412" r="3" fill="#B4B2A9"/>
+<text x="432" y="417" font-size="12" font-weight="400" fill="#D3D1C7">11</text>
+<circle cx="420" cy="434" r="3" fill="#B4B2A9"/>
+<text x="432" y="439" font-size="12" font-weight="400" fill="#D3D1C7">12</text>
+<circle cx="420" cy="456" r="3" fill="#B4B2A9"/>
+<text x="432" y="461" font-size="12" font-weight="400" fill="#D3D1C7">13</text>
+<circle cx="420" cy="478" r="3" fill="#B4B2A9"/>
+<text x="432" y="483" font-size="12" font-weight="400" fill="#D3D1C7">14</text>
+<circle cx="420" cy="500" r="3" fill="#B4B2A9"/>
+<text x="432" y="505" font-size="12" font-weight="400" fill="#D3D1C7">5V</text>
+<circle cx="420" cy="522" r="3" fill="#B4B2A9"/>
+<text x="432" y="527" font-size="14" font-weight="600" fill="#FAC775">GND</text>
+<circle cx="600" cy="60" r="3" fill="#B4B2A9"/>
+<text x="588" y="64" font-size="12" fill="#D3D1C7" text-anchor="end">GND</text>
+<circle cx="600" cy="82" r="3" fill="#B4B2A9"/>
+<text x="588" y="86" font-size="12" fill="#D3D1C7" text-anchor="end">TX</text>
+<circle cx="600" cy="104" r="3" fill="#B4B2A9"/>
+<text x="588" y="108" font-size="12" fill="#D3D1C7" text-anchor="end">RX</text>
+<circle cx="600" cy="126" r="3" fill="#B4B2A9"/>
+<text x="588" y="130" font-size="12" fill="#D3D1C7" text-anchor="end">1</text>
+<circle cx="600" cy="148" r="3" fill="#B4B2A9"/>
+<text x="588" y="152" font-size="12" fill="#D3D1C7" text-anchor="end">2</text>
+<circle cx="600" cy="170" r="3" fill="#B4B2A9"/>
+<text x="588" y="174" font-size="12" fill="#D3D1C7" text-anchor="end">42</text>
+<circle cx="600" cy="192" r="3" fill="#B4B2A9"/>
+<text x="588" y="196" font-size="12" fill="#D3D1C7" text-anchor="end">41</text>
+<circle cx="600" cy="214" r="3" fill="#B4B2A9"/>
+<text x="588" y="218" font-size="12" fill="#D3D1C7" text-anchor="end">40</text>
+<circle cx="600" cy="236" r="3" fill="#B4B2A9"/>
+<text x="588" y="240" font-size="12" fill="#D3D1C7" text-anchor="end">39</text>
+<circle cx="600" cy="258" r="3" fill="#B4B2A9"/>
+<text x="588" y="262" font-size="12" fill="#D3D1C7" text-anchor="end">38</text>
+<circle cx="600" cy="280" r="3" fill="#B4B2A9"/>
+<text x="588" y="284" font-size="12" fill="#D3D1C7" text-anchor="end">37 ✕</text>
+<circle cx="600" cy="302" r="3" fill="#B4B2A9"/>
+<text x="588" y="306" font-size="12" fill="#D3D1C7" text-anchor="end">36 ✕</text>
+<circle cx="600" cy="324" r="3" fill="#B4B2A9"/>
+<text x="588" y="328" font-size="12" fill="#D3D1C7" text-anchor="end">35 ✕</text>
+<circle cx="600" cy="346" r="3" fill="#B4B2A9"/>
+<text x="588" y="350" font-size="12" fill="#D3D1C7" text-anchor="end">0 BOOT</text>
+<circle cx="600" cy="368" r="3" fill="#B4B2A9"/>
+<text x="588" y="372" font-size="12" fill="#D3D1C7" text-anchor="end">45</text>
+<circle cx="600" cy="390" r="3" fill="#B4B2A9"/>
+<text x="588" y="394" font-size="12" fill="#D3D1C7" text-anchor="end">48 RGB</text>
+<circle cx="600" cy="412" r="3" fill="#B4B2A9"/>
+<text x="588" y="416" font-size="12" fill="#D3D1C7" text-anchor="end">47</text>
+<circle cx="600" cy="434" r="3" fill="#B4B2A9"/>
+<text x="588" y="438" font-size="12" fill="#D3D1C7" text-anchor="end">21</text>
+<circle cx="600" cy="456" r="3" fill="#B4B2A9"/>
+<text x="588" y="460" font-size="12" fill="#D3D1C7" text-anchor="end">20</text>
+<circle cx="600" cy="478" r="3" fill="#B4B2A9"/>
+<text x="588" y="482" font-size="12" fill="#D3D1C7" text-anchor="end">19</text>
+<circle cx="600" cy="500" r="3" fill="#B4B2A9"/>
+<text x="588" y="504" font-size="12" fill="#D3D1C7" text-anchor="end">GND</text>
+<circle cx="600" cy="522" r="3" fill="#B4B2A9"/>
+<text x="588" y="526" font-size="12" fill="#D3D1C7" text-anchor="end">GND</text>
+<rect x="440" y="556" width="62" height="30" rx="4" fill="none" stroke="#B4B2A9"/>
+<text x="471" y="575" font-size="12" fill="#D3D1C7" text-anchor="middle">USB</text>
+<rect x="518" y="556" width="62" height="30" rx="4" fill="none" stroke="#B4B2A9"/>
+<text x="549" y="575" font-size="12" fill="#D3D1C7" text-anchor="middle">COM</text>
+<text class="s" x="420" y="626">✕ = octal PSRAM, never wire</text>
+<line x1="50" y1="622" x2="72" y2="622" stroke="#D85A30" stroke-width="2.5"/>
+<text class="s" x="78" y="626">3.3 V</text>
+<line x1="130" y1="622" x2="152" y2="622" stroke="#5F5E5A" stroke-width="2.5"/>
+<text class="s" x="158" y="626">GND</text>
+<line x1="210" y1="622" x2="232" y2="622" stroke="#1D9E75" stroke-width="2.5"/>
+<text class="s" x="238" y="626">SDA</text>
+<line x1="290" y1="622" x2="312" y2="622" stroke="#1D9E75" stroke-width="2.5" stroke-dasharray="6 3"/>
+<text class="s" x="318" y="626">SCL</text>
+<line x1="50" y1="650" x2="72" y2="650" stroke="#7F77DD" stroke-width="2.5"/>
+<text class="s" x="78" y="654">INT</text>
+<circle cx="140" cy="650" r="3.5" fill="#2C2C2A"/>
+<text class="s" x="150" y="654">dot = joined · crossing without dot = not joined</text>
+</svg>

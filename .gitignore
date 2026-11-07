@@ -1,0 +1,19 @@
+# PlatformIO build artifacts & IDE files
+.pio/
+.vscode/
+compile_commands.json
+platformio_local*.ini
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Exported datasets (keep your own recordings out of git unless you mean it)
+tools/data/
+*.csv
+!partitions_*.csv
+
+# OS junk
+.DS_Store
+Thumbs.db

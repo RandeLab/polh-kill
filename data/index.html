@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>polh-kill</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐭</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🐭 polh-kill</h1>
+  <span class="tag" data-i18n="tagline">mousetrap snap detector · RandeLab</span>
+  <span class="spacer"></span>
+  <span class="pill" id="pillConn">…</span>
+  <span class="pill" id="pillSensor">sensor</span>
+  <span class="pill" id="pillArmed">armed</span>
+  <button class="small" id="btnLang" title="Language">DE</button>
+  <button class="small" id="btnTheme" title="Theme">🎨</button>
+</header>
+<nav>
+  <a href="#live" data-tab="live" data-i18n="tabLive">📡 Live</a>
+  <a href="#lab" data-tab="lab" data-i18n="tabLab">🧪 Learning lab</a>
+  <a href="#data" data-tab="data" data-i18n="tabData">📚 Dataset</a>
+  <a href="#settings" data-tab="settings" data-i18n="tabSettings">⚙️ Settings</a>
+</nav>
+
+<main>
+<!-- ================= LIVE ================= -->
+<section class="tab" id="tab-live">
+  <div class="grid">
+    <div class="panel stat"><div class="v" id="sNoise">–</div><div class="l" data-i18n="noiseFloorMg">noise floor (mg)</div></div>
+    <div class="panel stat"><div class="v" id="sThr">–</div><div class="l" data-i18n="thresholdMg">trigger threshold (mg)</div></div>
+    <div class="panel stat"><div class="v" id="sEvents">–</div><div class="l" data-i18n="eventsBoot">events since boot</div></div>
+    <div class="panel stat"><div class="v" id="sSnaps">–</div><div class="l" data-i18n="snapsTotal">snaps total</div></div>
+    <div class="panel stat"><div class="v" id="sSamples">–</div><div class="l" data-i18n="samples">labelled samples</div></div>
+    <div class="panel stat"><div class="v" id="sUptime">–</div><div class="l" data-i18n="uptime">uptime</div></div>
+  </div>
+  <div class="panel">
+    <h2><span data-i18n="liveTitle">Live vibration</span> <small data-i18n="liveSub">dynamic acceleration, gravity removed, last 10 s</small></h2>
+    <canvas id="cvLive" height="200"></canvas>
+    <div class="legend"><span><i style="background:var(--mag)"></i>|a| (mg)</span><span><i style="background:var(--red)"></i><span data-i18n="threshold">threshold</span></span><span><i style="background:var(--muted)"></i><span data-i18n="noiseFloor">noise floor</span></span></div>
+  </div>
+  <div class="panel hide" id="simPanel">
+    <h2>🧪 <span data-i18n="simTitle">Simulator</span> <small data-i18n="simSub">no real sensor: inject a fake vibration</small></h2>
+    <div class="chips" id="simChips"></div>
+  </div>
+  <div class="panel">
+    <h2><span data-i18n="recentTitle">Recent events</span> <small data-i18n="recentSub">label them, and ze model learns</small></h2>
+    <div class="events" id="recentList"></div>
+  </div>
+</section>
+
+<!-- ================= LAB ================= -->
+<section class="tab" id="tab-lab">
+  <div class="panel">
+    <h2>1 · <span data-i18n="labStep1">What will you do?</span></h2>
+    <div class="chips" id="labChips"></div>
+    <p class="muted" data-i18n="labHint">Pick a class, arm the test, then do exactly that to the trap (snap it, knock the table, walk past …). The next vibration becomes a training sample.</p>
+  </div>
+  <div class="panel armbox">
+    <div id="labIdle">
+      <button class="primary" id="btnArm" data-i18n="armTest">🎯 Arm test</button>
+      <label class="tgl" style="justify-content:center"><input type="checkbox" id="chkSeries"> <span data-i18n="series">series mode: re-arm after each keep</span></label>
+    </div>
+    <div id="labArmed" class="hide">
+      <div class="big pulse" id="labArmedText">…</div>
+      <div class="countdown" id="labCountdown">60</div>
+      <button class="small" id="btnCancel" data-i18n="cancel">cancel</button>
+      <div id="labSim" class="hide" style="margin-top:12px"><small class="muted" data-i18n="simSub">no real sensor: inject a fake vibration</small><div class="chips" id="labSimChips" style="justify-content:center;margin-top:6px"></div></div>
+    </div>
+  </div>
+  <div class="panel hide" id="candPanel">
+    <h2>2 · <span data-i18n="labStep2">Recorded. Is this what you did?</span></h2>
+    <canvas id="cvCand" height="220"></canvas>
+    <div class="legend"><span><i style="background:var(--x)"></i>x</span><span><i style="background:var(--y)"></i>y</span><span><i style="background:var(--z)"></i>z</span><span><i style="background:var(--mag)"></i>|a|</span></div>
+    <p id="candPred" class="mono"></p>
+    <div class="row">
+      <button class="primary" id="btnKeep">✅ keep</button>
+      <select id="selKeepAs"></select>
+      <button id="btnKeepAs" data-i18n="keepAs">keep as …</button>
+      <button class="danger" id="btnDiscard" data-i18n="discard">🗑 discard</button>
+    </div>
+    <details><summary class="muted" data-i18n="features">features</summary><table id="candFeat"></table></details>
+  </div>
+  <div class="panel">
+    <h2>3 · <span data-i18n="labStep3">What ze model knows</span> <small id="modelSummary"></small></h2>
+    <table id="classTable"></table>
+    <p class="muted" data-i18n="goal">Goal: at least 10 samples per class you care about. Snaps from different trap positions = better.</p>
+  </div>
+  <div class="panel">
+    <h2><span data-i18n="qualityTitle">Model quality</span> <small data-i18n="qualitySub">leave-one-out test on the device</small></h2>
+    <div class="row"><button class="small" id="btnLoo" data-i18n="refresh">↻ refresh</button><span id="looSummary" class="mono"></span></div>
+    <table class="cm" id="cmTable"></table>
+  </div>
+</section>
+
+<!-- ================= DATA ================= -->
+<section class="tab" id="tab-data">
+  <div class="panel">
+    <h2><span data-i18n="datasetTitle">Dataset</span> <small id="dsInfo"></small></h2>
+    <div class="row">
+      <a class="btn" href="/api/export.csv" data-i18n="exportCsv">⬇ export CSV</a>
+      <button class="small" id="btnDsRefresh" data-i18n="refresh">↻ refresh</button>
+      <span style="flex:1"></span>
+      <button class="danger small" id="btnWipe" data-i18n="wipe">wipe everything</button>
+    </div>
+    <canvas id="cvSample" height="200" class="hide" style="margin-top:12px"></canvas>
+    <table id="dsTable" style="margin-top:12px"></table>
+  </div>
+</section>
+
+<!-- ================= SETTINGS ================= -->
+<section class="tab" id="tab-settings">
+  <div class="panel">
+    <h2 data-i18n="detTitle">Detection</h2>
+    <label class="set"><span data-i18n="kSigma">trigger: noise + k·σ</span><input type="range" min="3" max="20" step="0.5" data-cfg="k_sigma"><span class="val"></span></label>
+    <label class="set"><span data-i18n="minG">minimum trigger (g)</span><input type="range" min="0.01" max="1" step="0.01" data-cfg="min_g"><span class="val"></span></label>
+    <label class="set"><span data-i18n="snapG">snap peak while model is empty (g)</span><input type="range" min="0.2" max="8" step="0.1" data-cfg="snap_g"><span class="val"></span></label>
+    <label class="set"><span data-i18n="alertP">alert from snap probability</span><input type="range" min="0.4" max="0.99" step="0.01" data-cfg="alert_p"><span class="val"></span></label>
+    <label class="set"><span data-i18n="unsureP">ask for a label from</span><input type="range" min="0.05" max="0.9" step="0.01" data-cfg="unsure_p"><span class="val"></span></label>
+    <label class="tgl"><input type="checkbox" data-cfg="armed"> <span data-i18n="armedLbl">armed (Telegram alerts)</span></label>
+    <label class="tgl"><input type="checkbox" data-cfg="notify_unsure"> <span data-i18n="notifyUnsure">ask on Telegram when unsure</span></label>
+    <label class="tgl"><input type="checkbox" data-cfg="daily"> <span data-i18n="daily">diary report every day at 20:00</span></label>
+  </div>
+  <div class="panel">
+    <h2>✈️ Telegram</h2>
+    <p id="tgInfo" class="muted"></p>
+    <div class="row">
+      <button id="btnTgTest" data-i18n="tgTest">send test message</button>
+      <button class="small" id="btnTgUnpair" data-i18n="tgUnpair">unpair chat</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h2 data-i18n="sysTitle">System</h2>
+    <p id="sysInfo" class="mono muted"></p>
+    <div class="row">
+      <a class="btn" href="/setup" data-i18n="wifiSetup">📶 WiFi / bot setup</a>
+      <a class="btn" href="/update" data-i18n="ota">⚡ OTA update</a>
+      <button id="btnPortal" data-i18n="portal">open hotspot</button>
+      <button class="danger" id="btnReboot" data-i18n="reboot">reboot</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <q id="quote"></q><br>
+  polh-kill <span id="ver"></span> · <a href="https://github.com/RandeLab/polh-kill">RandeLab/polh-kill</a> · GPL-3.0
+</footer>
+<div class="toast" id="toast"></div>
+<script src="mock.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
