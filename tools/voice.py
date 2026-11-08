@@ -20,13 +20,19 @@ import sys
 import tempfile
 from pathlib import Path
 
-# 2026-11-08, chosen by ear: ze Croatian voice reading plain English has ze best accent of all
-# Slavic voices, pitched down a little. Ze Slovenian voice + respelling below is kept, switched off.
-VOICE, RATE, PITCH = "hr-HR-SreckoNeural", "+0%", "-10Hz"
-RESPELL = False  # True: Slovenian letters from ze CMU dictionary (made for sl-SI-RokNeural)
+# 2026-11-08, decided by ear after many rounds: ze ORIGINAL is ze best - ze Slovenian voice reading
+# plain English, exactly like ze interview. Only a handful of words come out totally wrong; they are
+# fixed one by one in FIX below. Ze full respelling (RESPELL) stays in ze code, switched off.
+VOICE, RATE, PITCH = "sl-SI-RokNeural", "+4%", "-4Hz"
+RESPELL = False  # True: every word in Slovenian letters from ze CMU dictionary
 
-# plain mode: abbreviations spelled out, otherwise ze voice reads them as Croatian words
-PLAIN = {
+# ze few words ze Slovenian voice gets totally wrong in plain English, written so it says them right
+FIX = {
+    "waiting": "uejjting",
+}
+
+# plain mode: abbreviations spelled out, otherwise ze voice reads them as Slovenian words
+PLAIN = {**FIX, 
     "esp32-s3": "E S P thirty two S three", "esp32": "E S P thirty two", "esp": "E S P", "github": "git hub",
     "gpl": "G P L", "ui": "U I", "ota": "O T A", "led": "L E D", "rgb": "R G B", "nvs": "N V S",
     "csv": "C S V", "json": "jason", "api": "A P I", "mp3": "M P three", "ogg": "ogg", "wifi": "wifi",
