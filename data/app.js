@@ -8,9 +8,16 @@ let classInfo = [];
 // caught in the bar (soft vs. hard target damps the ring-down differently),
 // then animals around the trap, then household noise
 const EMOJI_PICKS = [
-  '👆', '🥒', '🌭', '🐁', '🥕', '🧀', '✏️', '🪵', '🥄', '🧽',
-  '🐀', '🐈', '🐕', '🐦', '🦔', '🪳', '🕷️',
-  '🚪', '🧺', '🔨', '🚗', '💨', '🌧️', '🌀'];
+  // animals
+  '🐁', '🐀', '🐹', '🐿️', '🦔', '🐈', '🐕', '🐦', '🐓', '🦉', '🐍', '🦎', '🐸', '🪳', '🕷️', '🦟', '🪰', '🐜', '🐌', '🦗', '🐾',
+  // bait and food
+  '🧀', '🥜', '🌰', '🍫', '🍞', '🥓', '🌭', '🥒', '🥕', '🍎', '🍌', '🍇', '🌽', '🍯',
+  // hands and objects
+  '👆', '✋', '🦶', '✏️', '🖌️', '🪵', '🔨', '🪛', '🥄', '🧽', '🧹', '🧺', '📦', '🪣', '🔑', '📱', '🎾', '⚽', '🧲',
+  // house and surroundings
+  '🚪', '🪟', '🛏️', '🚿', '🧊', '🔥', '💨', '🌧️', '⛈️', '🌀', '🚗', '🚲', '🚂', '✈️', '🔊', '🎵', '⚡', '🫳',
+  // people
+  '🧍', '🚶', '🏃', '👶', '🧑‍🔧'];
 const MOCK = location.protocol === 'file:' || new URLSearchParams(location.search).has('mock');
 
 // ---------------- i18n (English default, optional German) ----------------
@@ -33,7 +40,7 @@ const DE = {
   tgUnpair: 'alle entkoppeln', tgCode: 'neuer Beitrittscode', sysTitle: 'System', wifiSetup: '📶 WLAN / Bot einrichten', ota: '⚡ OTA-Update',
   portal: 'Hotspot öffnen', reboot: 'neu starten', noEvents: 'Noch nichts passiert. Absolut nichts.',
   waiting: 'Warte auf', doItNow: 'jetzt machen!', kept: 'gespeichert', discarded: 'verworfen', saved: 'gespeichert',
-  interview: '▶ Interview anhören', ghSub: 'jede Aufnahme, veröffentlicht', ghEvery: 'pushen alle (Minuten)', ghPush: 'jetzt pushen', ghOpen: 'Seite öffnen', newClass: '＋ neue Klasse', addClass: 'Klasse anlegen',
+  interview: '▶ Interview anhören', ghSub: 'jede Aufnahme, veröffentlicht', ghEvery: 'pushen alle (Minuten)', ghPush: 'jetzt pushen', ghOpen: 'Seite öffnen', newClass: '＋ neue Klasse', addClass: 'Klasse anlegen', newClassOpt: '＋ neue Klasse …', createKeep: '＋ anlegen & behalten',
   classRules: 'Name: a-z, 0-9, - und _ (max. 16). Löschen geht, solange die Klasse keine Beispiele hat.',
   confirmWipe: 'Wirklich den ganzen Datensatz löschen?', confirmReboot: 'Neu starten?', confirmPortal: 'Hotspot öffnen?',
 };
@@ -285,14 +292,27 @@ async function loadClasses() {
   if (!CLASSES.includes(labLabel)) labLabel = 'snap';
   renderLabChips(); renderEvents();
 }
+// creates a class from a name + emoji input pair; returns ze name or null
+async function createClass(nameInput, emojiInput) {
+  const name = nameInput.value.trim().toLowerCase().replace(/\s+/g, '-'), emoji = emojiInput.value.trim() || '🏷️';
+  if (!/^[a-z0-9_-]{1,16}$/.test(name)) { toast('❌ ' + t('classRules', 'name: a-z, 0-9, - and _ (max 16)')); nameInput.focus(); return null; }
+  if (!CLASSES.includes(name)) {
+    try { await api.post('/api/classes/add', { name, emoji }); } catch (e) { toast('❌ ' + e.message); return null; }
+    toast(`${emoji} ${name} ✅`);
+  }
+  nameInput.value = ''; emojiInput.value = '';
+  await loadClasses();
+  return name;
+}
 async function addClass() {
-  const name = $('#newName').value.trim().toLowerCase(), emoji = $('#newEmoji').value.trim() || '🏷️';
-  if (!/^[a-z0-9_-]{1,16}$/.test(name)) { toast('❌ ' + t('classRules', 'name: a-z, 0-9, - and _ (max 16)')); $('#newName').focus(); return; }
-  try { await api.post('/api/classes/add', { name, emoji }); } catch (e) { toast('❌ ' + e.message); return; }
+  const name = await createClass($('#newName'), $('#newEmoji'));
+  if (!name) return;
   labLabel = name; localSet('polh-lab-label', name);
-  $('#newName').value = ''; $('#newEmoji').value = '';
-  toast(`${emoji} ${name} ✅`);
-  loadClasses();
+  renderLabChips();
+}
+function emojiPicker(box, input) {
+  box.innerHTML = '';
+  EMOJI_PICKS.forEach(e => { const b = el('button', { className: 'chip', textContent: e }); b.onclick = () => { input.value = e; }; box.append(b); });
 }
 function renderLabChips() {
   const box = $('#labChips'); box.innerHTML = '';
@@ -313,8 +333,10 @@ function renderLabChips() {
     };
     cl.append(b);
   });
-  const sel = $('#selKeepAs'); sel.innerHTML = '';
+  const sel = $('#selKeepAs'), keep = sel.value; sel.innerHTML = '';
   CLASSES.forEach(c => sel.append(el('option', { value: c, textContent: `${EMOJI[c]} ${c}` })));
+  sel.append(el('option', { value: '__new', textContent: t('newClassOpt', '＋ new class …') }));
+  if (keep && keep !== '__new' && CLASSES.includes(keep)) sel.value = keep;
 }
 function updateLab(armedLabel, remainingMs) {
   const armed = !!armedLabel && remainingMs > 0;
@@ -353,6 +375,7 @@ async function discardCandidate() {
   afterCandidate();
 }
 function afterCandidate() {
+  $('#keepNewForm').classList.add('hide');
   candidate = null;
   $('#candPanel').classList.add('hide');
   loadModel(); loadStatus(); loadEvents();
@@ -480,14 +503,26 @@ function init() {
     $(sel).append(b);
   }));
   renderLabChips();
-  EMOJI_PICKS.forEach(e => { const b = el('button', { className: 'chip', textContent: e }); b.onclick = () => { $('#newEmoji').value = e; }; $('#emojiPicks').append(b); });
+  emojiPicker($('#emojiPicks'), $('#newEmoji'));
   $('#btnAddClass').onclick = addClass;
   $('#newName').addEventListener('keydown', ev => { if (ev.key === 'Enter') addClass(); });
   loadClasses();
   $('#btnArm').onclick = armTest;
   $('#btnCancel').onclick = async () => { await api.post('/api/lab/cancel'); updateLab(null, 0); };
   $('#btnKeep').onclick = () => candidate && keepCandidate(candidate.test_label);
-  $('#btnKeepAs').onclick = () => keepCandidate($('#selKeepAs').value);
+  // "keep as": ze last option creates a new class right here, then keeps ze recording in it
+  const keepNew = show => { $('#keepNewForm').classList.toggle('hide', !show); if (show) $('#keepNewName').focus(); };
+  $('#selKeepAs').onchange = () => keepNew($('#selKeepAs').value === '__new');
+  $('#btnKeepAs').onclick = () => $('#selKeepAs').value === '__new' ? keepNew(true) : keepCandidate($('#selKeepAs').value);
+  const createAndKeep = async () => {
+    const name = await createClass($('#keepNewName'), $('#keepNewEmoji'));
+    if (!name) return;
+    keepNew(false);
+    keepCandidate(name);
+  };
+  $('#btnKeepNew').onclick = createAndKeep;
+  $('#keepNewName').addEventListener('keydown', ev => { if (ev.key === 'Enter') createAndKeep(); });
+  emojiPicker($('#keepNewPicks'), $('#keepNewEmoji'));
   $('#btnDiscard').onclick = discardCandidate;
   $('#btnLoo').onclick = loadModel;
   $('#btnDsRefresh').onclick = loadDataset;

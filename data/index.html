@@ -62,7 +62,7 @@
         <input id="newName" maxlength="16" placeholder="rat" style="flex:1;min-width:120px" aria-label="class name">
         <button id="btnAddClass" data-i18n="addClass">add class</button>
       </div>
-      <div class="chips" id="emojiPicks" style="margin-top:8px"></div>
+      <div class="chips emojipicks" id="emojiPicks" style="margin-top:8px"></div>
       <small class="muted" data-i18n="classRules">name: a-z, 0-9, - and _ (max 16). A class can be deleted while it has no samples.</small>
       <div class="chips" id="customList" style="margin-top:8px"></div>
     </div>
@@ -90,6 +90,15 @@
       <select id="selKeepAs"></select>
       <button id="btnKeepAs" data-i18n="keepAs">keep as …</button>
       <button class="danger" id="btnDiscard" data-i18n="discard">🗑 discard</button>
+    </div>
+    <div id="keepNewForm" class="hide" style="margin-top:10px">
+      <div class="row">
+        <input id="keepNewEmoji" maxlength="8" placeholder="🐀" style="width:64px;text-align:center;font-size:1.3rem" aria-label="emoji">
+        <input id="keepNewName" maxlength="16" placeholder="rat" style="flex:1;min-width:120px" aria-label="new class name">
+        <button class="primary" id="btnKeepNew" data-i18n="createKeep">＋ create &amp; keep</button>
+      </div>
+      <div class="chips emojipicks" id="keepNewPicks" style="margin-top:8px"></div>
+      <small class="muted" data-i18n="classRules">name: a-z, 0-9, - and _ (max 16). A class can be deleted while it has no samples.</small>
     </div>
     <details><summary class="muted" data-i18n="features">features</summary><table id="candFeat"></table></details>
   </div>
