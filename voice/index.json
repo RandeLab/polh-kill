@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "5153d96",
+   "subject": "🏷️ Ze classes are born where they are needed",
+   "file": "voice/5153d96.ogg",
+   "ts": 1794162414
+  },
+  {
    "sha": "abbadd5",
    "subject": "📈 Ze live plot stops hesitating",
    "file": "voice/abbadd5.ogg",
@@ -85,7 +91,7 @@
    "ts": 1794102412
   }
  ],
- "updated": 1794161198,
+ "updated": 1794162477,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
