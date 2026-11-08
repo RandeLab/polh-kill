@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "740208a",
+   "subject": "🧹 Ze trap forgets everything, and learns to be judged",
+   "file": "voice/740208a.ogg",
+   "ts": 1794154679
+  },
+  {
    "sha": "8726a2c",
    "subject": "🔔 Ze trap stops listening to its own echo",
    "file": "voice/8726a2c.ogg",
@@ -37,7 +43,7 @@
    "ts": 1794102412
   }
  ],
- "updated": 1794149025,
+ "updated": 1794154717,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
