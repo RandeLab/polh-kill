@@ -28,7 +28,11 @@ RESPELL = False  # True: every word in Slovenian letters from ze CMU dictionary
 
 # ze few words ze Slovenian voice gets totally wrong in plain English, written so it says them right
 FIX = {
-    "waiting": "uejjting",
+    "waiting": "uejjting", "world": "uörrld", "wants": "uonts",
+}
+# ze same for phrases (applied first, case-insensitive)
+FIX_PHRASES = {
+    "open source": "oupen sors",
 }
 
 # plain mode: abbreviations spelled out, otherwise ze voice reads them as Slovenian words
@@ -148,6 +152,8 @@ def clean(text):
 def respell(text):
     if not RESPELL:  # abbreviations and versions first, before clean() turns digits into words
         text = re.sub(r"\bv(\d+)\.(\d+)\.(\d+)\b", r"version \1 point \2 point \3", text)
+        for phrase, said in FIX_PHRASES.items():
+            text = re.sub(r"\b" + re.escape(phrase) + r"\b", said, text, flags=re.I)
         text = re.sub(r"[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*", lambda m: PLAIN.get(m.group().lower(), m.group()), text)
         return clean(text)
     return re.sub(r"[A-Za-z][A-Za-z'\-]*[A-Za-z0-9]|[A-Za-z]", lambda m: respell_word(m.group()), clean(text))
