@@ -47,6 +47,7 @@ void loadSubs() {
     String name = n < 0 ? names : names.substring(0, n);
     names = n < 0 ? String() : names.substring(n + 1);
     id.trim();
+    if (name == "null") name = "";
     if (id.length()) subs.push_back({id, name.length() ? name : (subs.empty() ? String("owner") : id)});
   }
 }
@@ -488,9 +489,10 @@ void pollUpdates() {
     if (!chat.length()) continue;
 
     const String text = u["message"]["text"].as<String>();
-    String name = u["message"]["chat"]["title"].as<String>();  // groups have a title
-    if (!name.length()) name = u["message"]["chat"]["first_name"].as<String>();
-    if (!name.length()) name = u["message"]["chat"]["username"].as<String>();
+    // as<String>() of a missing field is "null" - ze nothingness has a name, but not this one
+    String name = u["message"]["chat"]["title"] | "";  // groups have a title
+    if (!name.length()) name = u["message"]["chat"]["first_name"] | "";
+    if (!name.length()) name = u["message"]["chat"]["username"] | "";
     if (!name.length()) name = chat;
     const bool start = text.startsWith("/start") || text.startsWith("/join");
 
@@ -570,6 +572,11 @@ void task(void*) {
     if (!bot.length()) fetchBotName();
     if (!bootSent && ownerChat().length()) {
       bootSent = true;
+      // after a crash we reboot quietly: a crash loop must not become a message loop
+      const esp_reset_reason_t rr = esp_reset_reason();
+      if (rr == ESP_RST_PANIC || rr == ESP_RST_INT_WDT || rr == ESP_RST_TASK_WDT || rr == ESP_RST_WDT ||
+          rr == ESP_RST_BROWNOUT)
+        continue;
       sendNow(ownerChat(), bootText(), "");  // only ze owner: ze others do not need every reboot
     }
     Outgoing* m = nullptr;
@@ -614,7 +621,17 @@ void send(const String& html, const String& markup) {
 
 void onEvent(const RecentEvent& e) {
   if (!settings.armed) return;
+  // not every vibration deserves a message: snap alerts max 1 per minute, questions max 1 per 10 min
+  static uint32_t lastAlert = 0, lastAsk = 0;
+  const uint32_t now = millis();
   const float p = e.pred.snapProb;
+  if (p >= settings.alertProb) {
+    if (lastAlert && now - lastAlert < 60000) return;
+    lastAlert = now;
+  } else if (settings.notifyUnsure && p >= settings.unsureProb) {
+    if (lastAsk && now - lastAsk < 600000) return;
+    lastAsk = now;
+  }
   const float peak = powf(10, e.feat[F_PEAK_LOG]);
   if (p >= settings.alertProb) {
     send("💥 <b>TRAP SNAPPED!</b>\n\nAnd so on, and so on... ze trap has spoken. Confidence <b>" + fmtPct(p) +

@@ -8,6 +8,7 @@
 #include "dataset.h"
 #include "features.h"
 #include "net.h"
+#include <algorithm>
 #include "settings.h"
 #include "telegram.h"
 #include "status_led.h"
@@ -142,7 +143,10 @@ void speakAfterPush(String voiceId, bool hasSnap) {
   static bool helloDone = false;
   static uint32_t lastVoice = 0;
   if (!settings.voiceMsgs) return;
-  if (!helloDone) voiceId = "hello";
+  const esp_reset_reason_t rr = esp_reset_reason();
+  const bool crashed = rr == ESP_RST_PANIC || rr == ESP_RST_INT_WDT || rr == ESP_RST_TASK_WDT || rr == ESP_RST_WDT;
+  if (!helloDone && crashed) helloDone = true;  // no cheerful hello after a crash
+  else if (!helloDone) voiceId = "hello";
   else if (!hasSnap && lastVoice && millis() - lastVoice < 6UL * 3600 * 1000) return;
   helloDone = true;
   lastVoice = millis();
@@ -200,24 +204,34 @@ bool push() {
   // ---- 4. blobs: index, csv, model, status
   int labelled = 0;
   {
+    // Arduino's String grows to ze exact size on every +=, so without reserve() building these
+    // files is quadratic: at ~400 captures it copied megabytes in PSRAM for seconds, ze idle task
+    // on core 0 starved and ze task watchdog shot ze trap. Reserve, look up fast, and yield.
+    std::vector<uint32_t> waveIds;
+    for (auto& f : files) waveIds.push_back(f.path.substring(14).toInt());  // "data/captures/<id>.json"
+    std::sort(waveIds.begin(), waveIds.end());
     String idx;
-    idx.reserve(all.size() * 64 + 1024);
+    idx.reserve(all.size() * 96 + 1024);
     idx += "{\"generated\":" + String((uint32_t)time(nullptr)) + ",\"device\":\"" + settings.deviceName +
            "\",\"version\":\"" POLH_VERSION "\",\"classes\":[";
     for (int c = 0; c < classCount(); c++)
       idx += String(c ? "," : "") + "{\"name\":\"" + className(c) + "\",\"emoji\":\"" + classEmoji(c) +
              "\",\"builtin\":" + (c < builtinClassCount() ? "true" : "false") + "}";
     idx += "],\"columns\":[\"id\",\"ts\",\"label\",\"pred\",\"snap_p\",\"peak_g\",\"waveform\"],\"captures\":[";
-    String csv = "id,ts,label,pred,snap_p,rate_hz";
+    String csv;
+    csv.reserve(all.size() * (40 + NFEAT * 11) + 256);
+    csv += "id,ts,label,pred,snap_p,rate_hz";
     for (int i = 0; i < NFEAT; i++) csv += String(",") + FEATURE_NAMES[i];
     csv += "\n";
     bool first = true;
+    uint32_t n = 0;
     for (auto& r : all) {
+      if ((++n & 31) == 0) vTaskDelay(1);  // let ze idle task breathe
       const bool isLab = r.label < classCount();
       labelled += isLab;
       // a capture has a published waveform if it was pushed before or is in this batch
       bool wave = (r.flags & FLAG_PUBLISHED) && (r.flags & FLAG_RAW);
-      for (auto& f : files) if (f.path == "data/captures/" + String(r.id) + ".json") wave = true;
+      if (std::binary_search(waveIds.begin(), waveIds.end(), r.id)) wave = true;
       idx += String(first ? "" : ",") + "[" + r.id + "," + r.ts + ",\"" + (isLab ? className(r.label) : "") +
              "\",\"" + className(r.predCls) + "\"," + String(r.snapP, 3) + "," +
              String(powf(10, r.feat[F_PEAK_LOG]), 3) + "," + (wave ? 1 : 0) + "]";

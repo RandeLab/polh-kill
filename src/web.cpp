@@ -12,6 +12,8 @@
 #include "settings.h"
 #include "status_led.h"
 #include "telegram.h"
+#include <esp_core_dump.h>
+#include <esp_system.h>
 
 namespace web {
 namespace {
@@ -350,6 +352,32 @@ void routesSystem() {
     if (!authed(r)) return;
     if (!telegram::removeUser(param(r, "chat"))) return fail(r, "no such comrade");
     ok(r);
+  });
+  // ze black box: why did ze trap die last time? reset reason + backtrace of ze last panic
+  // (core dump in flash). Decode: xtensa-esp32s3-elf-addr2line -pfiaC -e firmware.elf <pc> <bt...>
+  server.on("/api/crash", HTTP_GET, [](AsyncWebServerRequest* r) {
+    JsonDocument d;
+    static const char* reasons[] = {"unknown", "power-on", "external", "software", "panic", "int-wdt",
+                                    "task-wdt", "wdt", "deep-sleep", "brownout", "sdio", "usb", "jtag"};
+    const int rr = (int)esp_reset_reason();
+    d["reset_reason"] = rr >= 0 && rr < 13 ? reasons[rr] : "?";
+    d["heap_free"] = ESP.getFreeHeap();
+    d["heap_min"] = ESP.getMinFreeHeap();
+    d["heap_max_block"] = ESP.getMaxAllocHeap();
+    d["psram_free"] = ESP.getFreePsram();
+    esp_core_dump_summary_t* s = (esp_core_dump_summary_t*)malloc(sizeof(esp_core_dump_summary_t));
+    if (s && esp_core_dump_image_check() == ESP_OK && esp_core_dump_get_summary(s) == ESP_OK) {
+      JsonObject c = d["coredump"].to<JsonObject>();
+      c["task"] = s->exc_task;
+      c["pc"] = String(s->exc_pc, HEX);
+      c["exccause"] = s->ex_info.exc_cause;
+      c["excvaddr"] = String(s->ex_info.exc_vaddr, HEX);
+      c["corrupted"] = s->exc_bt_info.corrupted;
+      JsonArray bt = c["bt"].to<JsonArray>();
+      for (uint32_t i = 0; i < s->exc_bt_info.depth; i++) bt.add(String(s->exc_bt_info.bt[i], HEX));
+    }
+    free(s);
+    sendJson(r, d);
   });
   server.on("/api/telegram/newcode", HTTP_POST, [](AsyncWebServerRequest* r) {
     if (!authed(r)) return;

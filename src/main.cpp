@@ -10,6 +10,7 @@
  *
  * Target: ESP32-S3-WROOM-1 N16R8 (DevKitC-1 clone). GPL-3.0.
  */
+#include <esp_task_wdt.h>
 #include <Arduino.h>
 #include "app.h"
 #include "github.h"
@@ -53,6 +54,10 @@ void setup() {
   Serial.begin(115200);
   delay(1500);  // give USB CDC a moment so the boot log is visible
   Serial.printf("\n\n🐭 polh-kill v%s booting. And so on, and so on.\n", POLH_VERSION);
+  // ze task watchdog gets 20 s instead of 5: flash writes stall both cores, and a trap that dies
+  // during a slow LittleFS write is worse than a trap that is slow for a moment
+  const esp_task_wdt_config_t wdt = {.timeout_ms = 20000, .idle_core_mask = 1, .trigger_panic = true};
+  esp_task_wdt_reconfigure(&wdt);
   pinMode(PIN_BOOT_BUTTON, INPUT_PULLUP);
   statusLed::mode = statusLed::BOOT;
   statusLed::set(10, 10, 10);

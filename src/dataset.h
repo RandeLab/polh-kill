@@ -53,6 +53,7 @@ String rawPath(uint32_t id);
 size_t count();      // captures (not deleted)
 size_t labelled();   // captures with a label
 size_t rawCount();
-size_t fsUsed();
+size_t fsUsed();        // cached, cheap
+size_t refreshUsage();  // walks ze whole filesystem: slow, never from a web handler
 size_t fsTotal();
 }  // namespace dataset

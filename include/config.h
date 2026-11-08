@@ -41,5 +41,6 @@ constexpr int   MAX_CLASSES       = 12;     // 5 built-in + custom ones (classes
 constexpr int   MAX_TG_USERS      = 10;     // Telegram subscribers of one bot (owner + 9 comrades)
 constexpr int   NFEAT             = 12;     // see features.h for names
 constexpr int   RECENT_EVENTS     = 6;      // raw windows kept in RAM
-constexpr int   MAX_RAW_ON_FLASH  = 650;    // raw windows kept on flash (6 kB file = 2 blocks of 4 kB)
+constexpr int   MAX_RAW_ON_FLASH  = 500;    // raw windows kept on flash (6 kB file = 2 blocks of 4 kB):
+                                            // ~4.2 of 6 MB, LittleFS gets very slow when it is nearly full
 constexpr uint32_t TEST_ARM_TIMEOUT_MS = 60000;
