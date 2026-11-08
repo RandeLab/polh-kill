@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "abbadd5",
+   "subject": "📈 Ze live plot stops hesitating",
+   "file": "voice/abbadd5.ogg",
+   "ts": 1794161125
+  },
+  {
    "sha": "0efec4e",
    "subject": "🪤 Ze trap learns about its own resurrection",
    "file": "voice/0efec4e.ogg",
@@ -79,7 +85,7 @@
    "ts": 1794102412
   }
  ],
- "updated": 1794160391,
+ "updated": 1794161198,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
