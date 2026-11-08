@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define POLH_NAME      "polh-kill"
-#define POLH_VERSION   "0.1.0"
+#define POLH_VERSION   "0.2.0"
 #define POLH_AP_SSID   "polh-kill-AP"
 #define POLH_MDNS_HOST "polh-kill"
 #define POLH_TZ        "CET-1CEST,M3.5.0,M10.5.0/3"   // Europe/Zurich
@@ -40,5 +40,5 @@ constexpr int   LIVE_RATE_HZ      = 50;     // live plot points per second
 constexpr int   MAX_CLASSES       = 12;     // 5 built-in + custom ones (classes.cpp)
 constexpr int   NFEAT             = 12;     // see features.h for names
 constexpr int   RECENT_EVENTS     = 6;      // raw windows kept in RAM
-constexpr int   MAX_RAW_ON_FLASH  = 300;    // raw windows kept in LittleFS (~6 KB each)
+constexpr int   MAX_RAW_ON_FLASH  = 650;    // raw windows kept on flash (6 kB file = 2 blocks of 4 kB)
 constexpr uint32_t TEST_ARM_TIMEOUT_MS = 60000;

@@ -115,6 +115,12 @@ td.num, th.num { text-align: right; font-family: var(--mono); }
 footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 20px 16px 30px; }
 footer q { font-style: italic; }
 .hide { display: none !important; }
+.transcript { max-height: 240px; overflow-y: auto; text-align: left; margin: 10px auto 0; max-width: 720px;
+  border: 1px solid var(--grid); border-radius: var(--radius); padding: 4px 12px; font-size: .9rem; }
+.transcript p { margin: 8px 0; opacity: .5; cursor: pointer; transition: opacity .3s; }
+.transcript p:hover { opacity: .8; }
+.transcript p.now { opacity: 1; border-left: 3px solid var(--pink); padding-left: 8px; }
+.transcript .who { font-weight: 700; color: var(--cyan); }
 @media (max-width: 560px) {
   label.set { grid-template-columns: 1fr 1fr 50px; }
   header h1 { font-size: 1.25rem; }

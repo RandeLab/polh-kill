@@ -36,7 +36,15 @@ String jsonStr(const String& s) {
 
 String api(const String& method) { return "https://api.telegram.org/bot" + settings.tgToken + "/" + method; }
 
+int postLocked(const String& method, const String& body, String* response);
 int post(const String& method, const String& body, String* response = nullptr) {
+  net::tlsLock();
+  const int code = postLocked(method, body, response);
+  net::tlsUnlock();
+  return code;
+}
+
+int postLocked(const String& method, const String& body, String* response) {
   WiFiClientSecure client;
   client.setInsecure();  // no CA pinning: Telegram rotates certs, the token is the secret
   HTTPClient http;

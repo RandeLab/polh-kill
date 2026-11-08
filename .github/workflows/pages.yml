@@ -1,0 +1,62 @@
+# Copies the dashboard (pages/, style, interview) onto the gh-pages branch.
+# The ESP writes its captures into gh-pages/data/ itself - this job never touches them.
+name: Deploy ze dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pages/**"
+      - "data/style.css"
+      - "data/interview.mp3"
+      - "data/interview.json"
+      - "data/transcript.js"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          path: src
+
+      - name: Check out gh-pages (or start it)
+        env:
+          REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+        run: |
+          if git ls-remote --exit-code --heads "$REPO_URL" gh-pages >/dev/null; then
+            git clone --depth 20 --branch gh-pages "$REPO_URL" site
+          else
+            mkdir site && cd site && git init -b gh-pages && git remote add origin "$REPO_URL"
+          fi
+
+      - name: Copy ze dashboard
+        run: |
+          cp -r src/pages/. site/
+          cp src/data/style.css src/data/interview.mp3 src/data/interview.json src/data/transcript.js site/
+          touch site/.nojekyll
+          mkdir -p site/data
+
+      - name: Commit and push (retry if ze ESP was faster)
+        working-directory: site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "nothing changed, pure repetition"; exit 0; fi
+          git commit -m "🎨 Ze dashboard got a new face" -m "Deployed from main ${GITHUB_SHA::7}. Ze form changes, ze content stays. And so on, and so on."
+          for i in 1 2 3; do
+            git push origin gh-pages && exit 0
+            git pull --rebase origin gh-pages
+          done
+          exit 1

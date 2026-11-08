@@ -12,6 +12,10 @@ void Settings::load() {
   tgChat = p.getString("tg_chat", "");
   deviceName = p.getString("name", "polh-kill");
   adminPass = p.getString("admin", "");
+  ghToken = p.getString("gh_token", "");
+  ghRepo = p.getString("gh_repo", ghRepo);
+  ghBranch = p.getString("gh_branch", ghBranch);
+  ghEveryMin = p.getInt("gh_every", ghEveryMin);
   kSigma = p.getFloat("k_sigma", kSigma);
   minG = p.getFloat("min_g", minG);
   snapPeakG = p.getFloat("snap_g", snapPeakG);
@@ -32,6 +36,10 @@ void Settings::save() const {
   p.putString("tg_chat", tgChat);
   p.putString("name", deviceName);
   p.putString("admin", adminPass);
+  p.putString("gh_token", ghToken);
+  p.putString("gh_repo", ghRepo);
+  p.putString("gh_branch", ghBranch);
+  p.putInt("gh_every", ghEveryMin);
   p.putFloat("k_sigma", kSigma);
   p.putFloat("min_g", minG);
   p.putFloat("snap_g", snapPeakG);

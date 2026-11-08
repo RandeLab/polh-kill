@@ -9,6 +9,12 @@ struct Settings {
   String deviceName = "polh-kill";
   String adminPass;         // optional: protects /update, OTA and destructive API calls
 
+  // GitHub Pages publishing (fine-grained token, Contents read+write on one repo)
+  String ghToken;
+  String ghRepo = "RandeLab/polh-kill";
+  String ghBranch = "gh-pages";
+  int ghEveryMin = 15;      // push interval; snaps are pushed right away
+
   // detection & alerts (set in the web UI)
   float kSigma = 6.0f;
   float minG = 0.05f;

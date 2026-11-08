@@ -6,6 +6,7 @@
 #include <WiFi.h>
 #include "dataset.h"
 #include "features.h"
+#include "github.h"
 #include "net.h"
 #include "pages.h"
 #include "settings.h"
@@ -41,6 +42,8 @@ String render(const char* tpl) {
   s.replace("%PASS_HINT%", settings.wifiPass.length() ? "(saved, leave empty to keep)" : "");
   s.replace("%TOKEN_HINT%", settings.tgToken.length() ? "(saved, leave empty to keep)" : "123456:ABC-…");
   s.replace("%ADMIN_HINT%", settings.adminPass.length() ? "(set, leave empty to keep)" : "none");
+  s.replace("%GH_HINT%", settings.ghToken.length() ? "(saved, leave empty to keep)" : "github_pat_…");
+  s.replace("%GH_REPO%", htmlEsc(settings.ghRepo));
   return s;
 }
 
@@ -119,6 +122,7 @@ void routesStatus() {
     d["armed"] = settings.armed;
     d["notify_unsure"] = settings.notifyUnsure;
     d["daily"] = settings.dailyReport;
+    d["gh_every"] = settings.ghEveryMin;
     sendJson(r, d);
   });
 
@@ -139,6 +143,7 @@ void routesStatus() {
     b("armed", settings.armed);
     b("notify_unsure", settings.notifyUnsure);
     b("daily", settings.dailyReport);
+    if (param(r, "gh_every").length()) settings.ghEveryMin = constrain(param(r, "gh_every").toInt(), 1, 1440);
     settings.save();
     app::applySettings();
     ok(r);
@@ -238,8 +243,11 @@ void routesLab() {
     bool first = true;
     app::Guard g;
     dataset::forEach([&](const SampleRec& rec) {
-      s->printf("%s{\"id\":%u,\"ts\":%u,\"label\":\"%s\",\"raw\":%s,\"peak_g\":%.3f}", first ? "" : ",",
-                (unsigned)rec.id, (unsigned)rec.ts, className(rec.label), (rec.flags & 1) ? "true" : "false",
+      s->printf("%s{\"id\":%u,\"ts\":%u,\"label\":\"%s\",\"pred\":\"%s\",\"snap_p\":%.3f,\"raw\":%s,"
+                "\"published\":%s,\"peak_g\":%.3f}",
+                first ? "" : ",", (unsigned)rec.id, (unsigned)rec.ts,
+                rec.label < classCount() ? className(rec.label) : "", className(rec.predCls), rec.snapP,
+                (rec.flags & FLAG_RAW) ? "true" : "false", (rec.flags & FLAG_PUBLISHED) ? "true" : "false",
                 powf(10, rec.feat[F_PEAK_LOG]));
       first = false;
     });
@@ -268,13 +276,14 @@ void routesLab() {
   server.on("/api/export.csv", HTTP_GET, [](AsyncWebServerRequest* r) {
     AsyncResponseStream* s = r->beginResponseStream("text/csv");
     s->addHeader("Content-Disposition", "attachment; filename=polh-kill-samples.csv");
-    s->print("id,ts,label,rate_hz,raw");
+    s->print("id,ts,label,pred,snap_p,rate_hz,raw");
     for (int i = 0; i < NFEAT; i++) s->printf(",%s", FEATURE_NAMES[i]);
     s->print("\n");
     app::Guard g;
     dataset::forEach([&](const SampleRec& rec) {
-      s->printf("%u,%u,%s,%u,%d", (unsigned)rec.id, (unsigned)rec.ts, className(rec.label), rec.rateHz,
-                rec.flags & 1);
+      s->printf("%u,%u,%s,%s,%.3f,%u,%d", (unsigned)rec.id, (unsigned)rec.ts,
+                rec.label < classCount() ? className(rec.label) : "", className(rec.predCls), rec.snapP, rec.rateHz,
+                rec.flags & FLAG_RAW);
       for (int i = 0; i < NFEAT; i++) s->printf(",%.5f", rec.feat[i]);
       s->print("\n");
     });
@@ -306,6 +315,9 @@ void routesSystem() {
     const String name = param(r, "name");
     if (name.length()) settings.deviceName = name;
     if (admin.length()) settings.adminPass = admin;
+    const String ght = param(r, "gh_token"), ghr = param(r, "gh_repo");
+    if (ght.length()) settings.ghToken = ght;
+    if (ghr.indexOf('/') > 0) settings.ghRepo = ghr;
     settings.save();
     Serial.printf("[Setup 💾] saved WiFi '%s', rebooting\n", ssid.c_str());
     sendPage(r, PAGE_SAVED);
@@ -315,6 +327,12 @@ void routesSystem() {
   server.on("/api/wifi/scan", HTTP_GET, [](AsyncWebServerRequest* r) {
     if (r->hasParam("start")) net::startScan();
     r->send(200, "application/json", net::scanJson());
+  });
+
+  server.on("/api/github/push", HTTP_POST, [](AsyncWebServerRequest* r) {
+    if (!github::configured()) return fail(r, "no GitHub token");
+    github::pushNow();
+    ok(r);
   });
 
   server.on("/api/telegram/test", HTTP_POST, [](AsyncWebServerRequest* r) {

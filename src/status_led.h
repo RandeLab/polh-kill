@@ -1,7 +1,20 @@
-// On-board WS2812 status colours (RandeSolar style NeoPixel moods):
-//   blue breathing = setup hotspot open      dim green = online, armed
-//   dim yellow     = online, disarmed        magenta   = OTA / learning test armed
-//   red flash      = snap detected           white blip = any other event
+// On-board WS2812 (GPIO 48): ze trap's face. Meanings are documented in docs/led.md.
+//
+// Steady state (what ze trap is doing):
+//   white dim        booting
+//   blue breathing   setup hotspot "polh-kill-AP" open
+//   green dim        online, armed
+//   yellow dim       online, disarmed (no Telegram alerts)
+//   magenta breath   learning test armed - do ze thing now
+//   magenta solid    OTA update running
+//   orange blinking  no accelerometer found
+//
+// Short flashes on top (what just happened):
+//   red blinking 3 s   SNAP detected
+//   class colour 0.4 s any other capture: bump orange, footstep blue, mouse yellow,
+//                      other white, custom classes violet
+//   green double blink a labelled sample was learned
+//   cyan double blink  captures pushed to GitHub Pages
 #pragma once
 #include <Arduino.h>
 #include "config.h"
@@ -11,24 +24,46 @@ namespace statusLed {
 enum Mode { BOOT, PORTAL, ONLINE_ARMED, ONLINE_DISARMED, LAB, OTA, ERROR };
 
 inline Mode mode = BOOT;
-inline uint32_t flashUntil = 0;
-inline bool flashSnap = false;
+
+struct Flash {
+  uint8_t r = 0, g = 0, b = 0;
+  uint32_t until = 0;
+  uint16_t blinkMs = 0;  // 0 = solid
+};
+inline volatile bool flashNew = false;
+inline Flash pendingFlash, flash;
 
 inline void set(uint8_t r, uint8_t g, uint8_t b) { rgbLedWrite(PIN_RGB_LED, r, g, b); }
 
-inline void flashEvent(bool snap) {
-  flashSnap = snap;
-  flashUntil = millis() + (snap ? 3000 : 150);
+// may be called from any task; the LED itself is only written in loop()
+inline void flashColor(uint8_t r, uint8_t g, uint8_t b, uint32_t ms, uint16_t blinkMs = 0) {
+  pendingFlash.r = r; pendingFlash.g = g; pendingFlash.b = b;
+  pendingFlash.until = millis() + ms;
+  pendingFlash.blinkMs = blinkMs;
+  flashNew = true;
 }
+
+inline void flashEvent(int cls, bool snap) {
+  if (snap) return flashColor(60, 0, 0, 3000, 150);
+  static const uint8_t col[5][3] = {{60, 0, 0}, {50, 18, 0}, {0, 10, 50}, {45, 35, 0}, {30, 30, 30}};
+  if (cls >= 0 && cls < 5) flashColor(col[cls][0], col[cls][1], col[cls][2], 400);
+  else flashColor(25, 0, 45, 400);  // custom class
+}
+inline void flashLearned() { flashColor(0, 45, 0, 600, 150); }
+inline void flashPushed() { flashColor(0, 35, 40, 600, 150); }
 
 inline void loop() {
   static uint32_t last = 0;
   const uint32_t now = millis();
   if (now - last < 30) return;
   last = now;
-  if (now < flashUntil) {
-    if (flashSnap) ((now / 150) % 2) ? set(60, 0, 0) : set(0, 0, 0);
-    else set(30, 30, 30);
+  if (flashNew) {
+    flashNew = false;
+    flash = pendingFlash;
+  }
+  if ((int32_t)(flash.until - now) > 0) {
+    const bool on = !flash.blinkMs || (now / flash.blinkMs) % 2;
+    on ? set(flash.r, flash.g, flash.b) : set(0, 0, 0);
     return;
   }
   const float breath = (sinf(now / 600.0f) + 1.0f) * 0.5f;

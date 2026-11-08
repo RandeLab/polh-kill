@@ -216,4 +216,8 @@ String scanJson() {
 
 bool otaInProgress() { return otaRunning; }
 
+static SemaphoreHandle_t tlsMtx = xSemaphoreCreateMutex();
+void tlsLock() { xSemaphoreTake(tlsMtx, portMAX_DELAY); }
+void tlsUnlock() { xSemaphoreGive(tlsMtx); }
+
 }  // namespace net

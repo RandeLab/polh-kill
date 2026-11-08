@@ -3,6 +3,7 @@
 #include <freertos/semphr.h>
 #include <vector>
 #include "dataset.h"
+#include "github.h"
 #include "features.h"
 #include "net.h"
 #include "settings.h"
@@ -125,13 +126,17 @@ void loop() {
       st.lastSnapTs = w->ts;
       persistSnapCount();
     }
+    // every capture is kept (unlabelled until somebody says what it was);
+    // lab candidates only when the user keeps them
+    if (!e.candidate) e.sampleId = dataset::add(*w, e.feat, -1, e.pred.cls, e.pred.method, e.pred.snapProb);
     pushRecent(e);
+    github::notifyCapture(snap);
   }
   Serial.printf("[Event %s] #%u peak %.2f g -> %s (snap %.0f %%, %s)%s\n",
                 classEmoji(e.pred.cls), (unsigned)w->id, powf(10, e.feat[F_PEAK_LOG]),
                 className(e.pred.cls), e.pred.snapProb * 100, METHOD_NAMES[e.pred.method],
                 e.candidate ? " [lab]" : "");
-  statusLed::flashEvent(e.pred.snapProb >= settings.alertProb);
+  statusLed::flashEvent(e.pred.cls, !e.candidate && e.pred.snapProb >= settings.alertProb);
   web::notifyEvent(e);
   if (!e.candidate) telegram::onEvent(e);
 }
@@ -179,11 +184,12 @@ uint32_t labelEvent(uint32_t eventId, int label) {
     e->storedLabel = label;
     return e->sampleId;
   }
-  const uint32_t id = dataset::add(*e->win, e->feat, label);
+  const uint32_t id = dataset::add(*e->win, e->feat, label, e->pred.cls, e->pred.method, e->pred.snapProb);
   if (!id) return 0;
   e->sampleId = id;
   e->storedLabel = label;
   clf.add(e->feat, label);  // the recursive update
+  statusLed::flashLearned();
   Serial.printf("[Learn 🧠] event #%u stored as sample %u = %s (%u samples)\n", (unsigned)eventId,
                 (unsigned)id, className(label), (unsigned)clf.total());
   return id;
@@ -222,7 +228,7 @@ bool deleteClass(int idx, String& err) {
   if (idx < builtinClassCount() || idx >= classCount()) { err = "built-in classes cannot be deleted"; return false; }
   if (clf.count(idx) > 0) { err = "class still has samples - relabel or delete them first"; return false; }
   std::vector<SampleRec> move;
-  dataset::forEach([&](const SampleRec& r) { if (r.label > idx) move.push_back(r); });
+  dataset::forEach([&](const SampleRec& r) { if (r.label > idx && r.label < LABEL_NONE) move.push_back(r); });
   for (auto& r : move) dataset::relabel(r.id, r.label - 1);
   for (int i = 0; i < recentN; i++) {
     if (recent[i].storedLabel > idx) recent[i].storedLabel--;
@@ -248,14 +254,15 @@ void rebuildModel() {
   Guard g;
   clf.reset();
   clf.snapPeakG = settings.snapPeakG;
-  dataset::forEach([](const SampleRec& r) { clf.add(r.feat, r.label); });
+  dataset::forEach([](const SampleRec& r) { if (r.label < classCount()) clf.add(r.feat, r.label); });
+  github::notifyChange();
 }
 
 LooResult leaveOneOut() {
   Guard g;
   LooResult res;
   std::vector<SampleRec> all;
-  dataset::forEach([&](const SampleRec& r) { all.push_back(r); });
+  dataset::forEach([&](const SampleRec& r) { if (r.label < classCount()) all.push_back(r); });
   for (auto& r : all) {
     clf.remove(r.feat, r.label);
     const Prediction p = clf.predict(r.feat);
@@ -339,6 +346,11 @@ void statusToJson(JsonObject o) {
   JsonObject fs = o["fs"].to<JsonObject>();
   fs["used"] = dataset::fsUsed();
   fs["total"] = dataset::fsTotal();
+  fs["captures"] = dataset::count();
+  fs["labelled"] = dataset::labelled();
+  fs["raw"] = dataset::rawCount();
+  fs["raw_max"] = MAX_RAW_ON_FLASH;
+  github::statusToJson(o["github"].to<JsonObject>());
 }
 
 void modelToJson(JsonObject o) {

@@ -1,4 +1,4 @@
-"""Generate data/interview.mp3: a short radio interview with ze philosopher of ze trap.
+"""Generate data/interview.mp3 + data/interview.json (timed transcript): a short radio interview with ze philosopher of ze trap.
 
     pip install edge-tts
     python tools/make_interview.py
@@ -7,6 +7,7 @@ The philosopher is a Slovenian neural voice reading English (sl-SI-RokNeural),
 the interviewer an English one. Uses Microsoft's online Edge TTS service.
 """
 import asyncio
+import json
 from pathlib import Path
 
 import edge_tts
@@ -44,12 +45,20 @@ async def main():
         tmp = out.with_name(f"_part{i}.mp3")
         await edge_tts.Communicate(text, voice, rate=rate, pitch=pitch).save(str(tmp))
         parts.append(tmp)
-    # all parts share the same MP3 format (24 kHz mono 48 kbit/s), so plain concatenation is a valid stream
+    # all parts share the same MP3 format (24 kHz mono 48 kbit/s CBR), so plain concatenation is
+    # a valid stream - and the byte count gives the exact time where each part starts
+    transcript, t = [], 0.0
     with out.open("wb") as f:
-        for p in parts:
-            f.write(p.read_bytes())
+        for p, ((voice, _, _), text) in zip(parts, SCRIPT):
+            data = p.read_bytes()
+            dur = len(data) * 8 / 48000
+            transcript.append({"start": round(t, 2), "end": round(t + dur, 2),
+                               "who": "host" if voice == HOST[0] else "philosopher", "text": text})
+            t += dur
+            f.write(data)
             p.unlink()
-    print(f"wrote {out} ({out.stat().st_size // 1024} kB)")
+    out.with_suffix(".json").write_text(json.dumps(transcript, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"wrote {out} ({out.stat().st_size // 1024} kB, {t:.0f} s) + transcript")
 
 
 asyncio.run(main())

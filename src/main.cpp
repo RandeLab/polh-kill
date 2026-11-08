@@ -12,6 +12,7 @@
  */
 #include <Arduino.h>
 #include "app.h"
+#include "github.h"
 #include "config.h"
 #include "net.h"
 #include "settings.h"
@@ -61,6 +62,7 @@ void setup() {
   net::begin();
   web::begin();
   telegram::begin();
+  github::begin();
 }
 
 void loop() {

@@ -19,4 +19,7 @@ int apClients();
 void startScan();
 String scanJson();      // [] while scanning
 bool otaInProgress();
+// one TLS session at a time (Telegram + GitHub share the internal RAM)
+void tlsLock();
+void tlsUnlock();
 }  // namespace net

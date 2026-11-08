@@ -142,6 +142,15 @@
     </div>
   </div>
   <div class="panel">
+    <h2>🐙 GitHub Pages <small data-i18n="ghSub">every capture, published</small></h2>
+    <p id="ghInfo" class="muted"></p>
+    <label class="set"><span data-i18n="ghEvery">push every (minutes)</span><input type="range" min="5" max="120" step="5" data-cfg="gh_every"><span class="val"></span></label>
+    <div class="row">
+      <button id="btnGhPush" data-i18n="ghPush">push now</button>
+      <a class="btn" id="lnkPages" href="#" target="_blank" rel="noopener" data-i18n="ghOpen">open the page</a>
+    </div>
+  </div>
+  <div class="panel">
     <h2 data-i18n="sysTitle">System</h2>
     <p id="sysInfo" class="mono muted"></p>
     <div class="row">
@@ -158,10 +167,12 @@
   <q id="quote"></q><br>
   <button class="small" id="btnInterview" data-i18n="interview" style="margin:8px 0">▶ listen to ze interview</button>
   <a class="btn" href="interview.mp3" download="polh-kill-interview.mp3" style="padding:3px 9px;font-size:.8rem;border-width:1px">⬇ mp3</a>
-  <audio id="audInterview" src="interview.mp3" preload="none"></audio><br>
+  <audio id="audInterview" src="interview.mp3" preload="none"></audio>
+  <div id="transcript" class="transcript hide"></div>
   polh-kill <span id="ver"></span> · <a href="https://github.com/RandeLab/polh-kill">RandeLab/polh-kill</a> · GPL-3.0
 </footer>
 <div class="toast" id="toast"></div>
+<script src="transcript.js"></script>
 <script src="mock.js"></script>
 <script src="app.js"></script>
 </body>

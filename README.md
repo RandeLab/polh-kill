@@ -8,7 +8,7 @@
 *Mousetrap snap detector for the RandeLab. An ESP32-S3 sits on ze trap, feels every vibration,
 learns which one is ze real snap, and tells you on Telegram. And so on, and so on.*
 
-🇬🇧 [English](#english) · 🇩🇪 [Deutsch](#deutsch)
+🇬🇧 [English](#english) · 🇩🇪 [Deutsch](#deutsch) · 📊 **[Live captures on GitHub Pages](https://randelab.github.io/polh-kill/)** · ▶ [Ze interview](https://randelab.github.io/polh-kill/#interview)
 
 ---
 
@@ -32,7 +32,10 @@ cheese waits… and you, you do not know. This is unbearable. polh-kill ends thi
    confidence, label buttons when it is unsure, a diary (`/howareyou`) at 20:00.
 6. **Fallback hotspot "polh-kill-AP"** with captive portal: the phone pops up the setup page
    for WiFi, bot token and admin password. No WiFi? Hotspot comes back by itself.
-7. **OTA**: ArduinoOTA (`pio run -e polh-ota -t upload`) and a web upload page at `/update`
+7. **Publishes everything**: every capture is stored on the ESP (~650 waveforms, features of ~90 000)
+   and pushed to **[GitHub Pages](https://randelab.github.io/polh-kill/)** as one commit per batch →
+   [docs/publishing.md](docs/publishing.md).
+8. **OTA**: ArduinoOTA (`pio run -e polh-ota -t upload`) and a web upload page at `/update`
    for firmware *and* web UI. The learned dataset lives on its own partition and survives both.
 
 ### 🔌 Hardware
@@ -95,8 +98,16 @@ Create it with [@BotFather](https://t.me/BotFather) (`/newbot`), copy the token 
 
 ### 🌈 LED
 
-blue breathing = hotspot · green = armed · yellow = disarmed · magenta = learning test / OTA ·
-red blinking = snap · orange blinking = no sensor
+| steady | meaning | flash | meaning |
+|---|---|---|---|
+| 🔵 blue breathing | hotspot open | 🔴 red blinking | **snap!** |
+| 🟢 green | armed | 🟠 orange · 🔵 blue · 🟡 yellow · ⚪ white | bump · footstep · mouse · other |
+| 🟡 yellow | disarmed | 🟣 violet | one of your own classes |
+| 🟣 magenta breathing | learning test armed | 🟢 green double | sample learned |
+| 🟣 magenta solid | OTA running | 🩵 cyan double | pushed to GitHub Pages |
+| 🟠 orange blinking | no sensor | | |
+
+All details: [docs/led.md](docs/led.md)
 
 ### 🗂️ Repo
 
@@ -139,7 +150,10 @@ Ungewissheit.
    Alarme mit Konfidenz, Label-Knöpfe wenn er unsicher ist, Tagebuch (`/wiegehts`) um 20:00.
 6. **Fallback-Hotspot «polh-kill-AP»** mit Captive Portal: Das Handy zeigt automatisch die
    Einrichtungsseite für WLAN, Bot-Token und Admin-Passwort. Kein WLAN? Der Hotspot kommt von selbst.
-7. **OTA**: ArduinoOTA (`pio run -e polh-ota -t upload`) und eine Upload-Seite unter `/update` für
+7. **Veröffentlicht alles**: Jede Aufnahme wird auf dem ESP gespeichert (~650 Kurven, Merkmale von ~90 000)
+   und als ein Commit pro Stapel auf **[GitHub Pages](https://randelab.github.io/polh-kill/)** gepusht →
+   [docs/publishing.md](docs/publishing.md).
+8. **OTA**: ArduinoOTA (`pio run -e polh-ota -t upload`) und eine Upload-Seite unter `/update` für
    Firmware *und* Webinterface. Die gelernten Daten liegen auf einer eigenen Partition und überleben beides.
 
 ### 🔌 Hardware
@@ -197,7 +211,7 @@ im NVS des ESP und werden über das Captive Portal eingegeben. Bitte so lassen, 
 
 *Ze cheese is not ze goal. Ze cheese is ze ideology.*
 
-[▶ **Listen to ze interview** (2 min, mp3)](https://raw.githubusercontent.com/RandeLab/polh-kill/main/data/interview.mp3)
+[▶ **Listen to ze interview** (2 min)](https://randelab.github.io/polh-kill/#interview)
 
 RandeLab · GPL-3.0 · hack, remix, share
 

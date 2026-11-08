@@ -7,7 +7,7 @@
   const EM = { snap: '💥', bump: '🤜', footstep: '👣', mouse: '🐭', other: '❓' };
   const NB = CL.length;
   const subs = [];
-  const cfg = { k_sigma: 6, min_g: 0.05, snap_g: 1, alert_p: 0.7, unsure_p: 0.35, armed: true, notify_unsure: true, daily: true };
+  const cfg = { gh_every: 15, k_sigma: 6, min_g: 0.05, snap_g: 1, alert_p: 0.7, unsure_p: 0.35, armed: true, notify_unsure: true, daily: true };
   const st = { events: 0, snaps: 3, armed: null, armedAt: 0, nextId: 1, nextSample: 1 };
   const recent = [], windows = {}, samples = [];
   const t0 = Date.now();
@@ -88,7 +88,8 @@
         sensor: { ok: true, name: 'simulator', rate: 1000, samples: 1, baseline_g: 0.0042, sigma_g: 0.0015, threshold_g: 0.032, gravity: [0.02, -0.01, 1.0], simulated: true },
         stats: { events: st.events, snaps_total: st.snaps, snaps_boot: 0 },
         lab: { armed_label: st.armed, remaining_ms: st.armed ? 60000 - (Date.now() - st.armedAt) : 0, samples: samples.length },
-        telegram: { configured: true, paired: true, bot: 'PolhKillBot', last_error: '' }, armed: cfg.armed, fs: { used: 120e3, total: 6e6 } };
+        telegram: { configured: true, paired: true, bot: 'PolhKillBot', last_error: '' }, armed: cfg.armed, fs: { used: 120e3, total: 6e6, captures: st.events, labelled: samples.length, raw: st.events, raw_max: 650 },
+        github: { configured: true, repo: 'RandeLab/polh-kill', branch: 'gh-pages', pages_url: 'https://randelab.github.io/polh-kill/', last_ok_ago_ms: 240000, backlog: 2, last_message: '🐭 3 new captures from ze trap', last_error: '' } };
       if (p === '/api/config') return { ...cfg };
       if (p === '/api/events') return recent;
       if (p === '/api/classes') return CL.map((c, i) => ({ name: c, emoji: EM[c], builtin: i < NB, n: samples.filter(s => s.label === c).length }));

@@ -33,7 +33,7 @@ const DE = {
   tgUnpair: 'Chat entkoppeln', sysTitle: 'System', wifiSetup: '📶 WLAN / Bot einrichten', ota: '⚡ OTA-Update',
   portal: 'Hotspot öffnen', reboot: 'neu starten', noEvents: 'Noch nichts passiert. Absolut nichts.',
   waiting: 'Warte auf', doItNow: 'jetzt machen!', kept: 'gespeichert', discarded: 'verworfen', saved: 'gespeichert',
-  interview: '▶ Interview anhören', newClass: '＋ neue Klasse', addClass: 'Klasse anlegen',
+  interview: '▶ Interview anhören', ghSub: 'jede Aufnahme, veröffentlicht', ghEvery: 'pushen alle (Minuten)', ghPush: 'jetzt pushen', ghOpen: 'Seite öffnen', newClass: '＋ neue Klasse', addClass: 'Klasse anlegen',
   classRules: 'Name: a-z, 0-9, - und _ (max. 16). Löschen geht, solange die Klasse keine Beispiele hat.',
   confirmWipe: 'Wirklich den ganzen Datensatz löschen?', confirmReboot: 'Neu starten?', confirmPortal: 'Hotspot öffnen?',
 };
@@ -179,7 +179,12 @@ async function loadStatus() {
   const tg = s.telegram;
   $('#tgInfo').textContent = !tg.configured ? 'No bot token yet → WiFi / bot setup.' :
     `Bot @${tg.bot || '?'} · ${tg.paired ? 'paired' : 'not paired: send /start to the bot'}${tg.last_error ? ' · last error: ' + tg.last_error : ''}`;
-  $('#sysInfo').textContent = `IP ${net.ip} · heap ${(s.heap / 1024).toFixed(0)} kB · PSRAM ${(s.psram / 1048576).toFixed(1)} MB · dataset ${(s.fs.used / 1024).toFixed(0)} / ${(s.fs.total / 1024).toFixed(0)} kB · gravity [${s.sensor.gravity.map(v => v.toFixed(2)).join(', ')}] g`;
+  const gh = s.github || {};
+  $('#lnkPages').href = gh.pages_url || '#';
+  $('#ghInfo').textContent = !gh.configured ? 'No GitHub token yet → WiFi / bot setup (fine-grained token, Contents read+write on ' + (gh.repo || 'the repo') + ').' :
+    `${gh.repo} @ ${gh.branch} · last push ${gh.last_ok_ago_ms ? fmtDur(gh.last_ok_ago_ms) + ' ago' : 'never'}` +
+    `${gh.backlog > 0 ? ' · ' + gh.backlog + ' waiting' : ''}${gh.last_error ? ' · ❌ ' + gh.last_error : gh.last_message ? ' · “' + gh.last_message + '”' : ''}`;
+  $('#sysInfo').textContent = `IP ${net.ip} · heap ${(s.heap / 1024).toFixed(0)} kB · PSRAM ${(s.psram / 1048576).toFixed(1)} MB · captures ${s.fs.captures} (${s.fs.labelled} labelled, ${s.fs.raw}/${s.fs.raw_max} waveforms) · dataset ${(s.fs.used / 1024).toFixed(0)} / ${(s.fs.total / 1024).toFixed(0)} kB · gravity [${s.sensor.gravity.map(v => v.toFixed(2)).join(', ')}] g`;
   if (!wsOpen) { live.thr = s.sensor.threshold_g * 1000; live.base = s.sensor.baseline_g * 1000; }
   updateLab(s.lab.armed_label, s.lab.remaining_ms);
 }
@@ -328,17 +333,19 @@ async function loadModel() {
 async function loadDataset() {
   let list;
   try { list = await api.get('/api/samples'); } catch (e) { return; }
-  $('#dsInfo').textContent = `${list.length} samples`;
+  $('#dsInfo').textContent = `${list.length} captures, ${list.filter(s => s.label).length} labelled`;
   const tb = $('#dsTable');
-  tb.innerHTML = '<tr><th>#</th><th>time</th><th>label</th><th class="num">peak (g)</th><th></th></tr>';
+  tb.innerHTML = '<tr><th>#</th><th>time</th><th>label</th><th>model said</th><th class="num">peak (g)</th><th></th></tr>';
   list.slice().reverse().forEach(s => {
     const tr = el('tr');
     const sel = el('select');
+    if (!s.label) sel.append(el('option', { value: '', textContent: '— unlabelled', selected: true, disabled: true }));
     CLASSES.forEach(c => sel.append(el('option', { value: c, textContent: `${EMOJI[c]} ${c}`, selected: c === s.label })));
     sel.onchange = async () => { await api.post('/api/samples/relabel', { id: s.id, label: sel.value }); toast(`#${s.id} → ${sel.value}`); };
     tr.append(el('td', { className: 'mono', textContent: s.id }), el('td', { textContent: s.ts ? new Date(s.ts * 1000).toLocaleString() : '–' }));
     const tdSel = el('td'); tdSel.append(sel); tr.append(tdSel);
-    tr.append(el('td', { className: 'num', textContent: s.peak_g.toFixed(2) }));
+    tr.append(el('td', { textContent: s.pred ? `${EMOJI[s.pred] || '❔'} ${s.pred}${s.snap_p >= 0 ? ' · ' + pct(s.snap_p) : ''}` : '' }));
+    tr.append(el('td', { className: 'num', textContent: s.peak_g.toFixed(2) + (s.published ? ' 🐙' : '') }));
     const act = el('td');
     if (s.raw) { const b = el('button', { className: 'small', textContent: '📈' }); b.onclick = async () => drawWindow($('#cvSample'), await api.get('/api/window?sample=' + s.id)); act.append(b); }
     const del = el('button', { className: 'small danger', textContent: '✕' });
@@ -409,6 +416,8 @@ function init() {
   const labelI = () => { btnI.textContent = aud.paused ? t('interview', '▶ listen to ze interview') : '⏸ pause'; };
   btnI.onclick = () => { aud.paused ? aud.play().catch(() => toast('❌ audio')) : aud.pause(); };
   aud.onplay = aud.onpause = aud.onended = labelI;
+  aud.addEventListener('play', () => $('#transcript').classList.remove('hide'), { once: true });
+  window.polhTranscript(aud, $('#transcript'));
   window.addEventListener('hashchange', showTab);
   window.addEventListener('resize', () => drawLive(true));
 
@@ -430,6 +439,7 @@ function init() {
   $('#btnLoo').onclick = loadModel;
   $('#btnDsRefresh').onclick = loadDataset;
   $('#btnWipe').onclick = async () => { if (confirm(t('confirmWipe', 'Really wipe the whole dataset?'))) { await api.post('/api/model/wipe'); loadDataset(); loadStatus(); } };
+  $('#btnGhPush').onclick = async () => { try { await api.post('/api/github/push'); toast('🐙 pushing…'); } catch (e) { toast('❌ ' + e.message); } };
   $('#btnTgTest').onclick = async () => { try { await api.post('/api/telegram/test'); toast('✈️ sent'); } catch (e) { toast('❌ ' + e.message); } };
   $('#btnTgUnpair').onclick = async () => { await api.post('/api/telegram/unpair'); loadStatus(); };
   $('#btnPortal').onclick = async () => { if (confirm(t('confirmPortal', 'Open the hotspot?'))) await api.post('/api/portal'); };

@@ -29,6 +29,8 @@ static const char PAGE_SETUP[] PROGMEM = R"html(<!doctype html><html lang="en"><
 <label for="chat">Telegram chat id (optional)</label><input id="chat" name="chat" value="%CHAT%" placeholder="empty = first /start pairs">
 <label for="name">Device name</label><input id="name" name="name" value="%NAME%">
 <label for="admin">Admin password (optional, protects OTA + reset)</label><input id="admin" name="admin" type="password" placeholder="%ADMIN_HINT%">
+<label for="ghtoken">GitHub token (optional, publishes captures to GitHub Pages)</label><input id="ghtoken" name="gh_token" type="password" placeholder="%GH_HINT%" autocomplete="off">
+<label for="ghrepo">GitHub repo</label><input id="ghrepo" name="gh_repo" value="%GH_REPO%">
 <button type="submit">💾 Save and reboot</button>
 <small>Empty password / token fields keep ze saved values.</small>
 </form>
