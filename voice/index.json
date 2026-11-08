@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "80bb4b2",
+   "subject": "🔙 Ze philosopher returns to his own voice",
+   "file": "voice/80bb4b2.ogg",
+   "ts": 1794155544
+  },
+  {
    "sha": "0793d4b",
    "subject": "🗳️ Round one: ze people have spoken, and they said 👎",
    "file": "voice/0793d4b.ogg",
@@ -55,7 +61,7 @@
    "ts": 1794102412
   }
  ],
- "updated": 1794155290,
+ "updated": 1794155598,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
