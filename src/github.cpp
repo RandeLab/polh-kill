@@ -31,7 +31,7 @@ struct FileOut {
 
 String api(const String& path) { return "https://api.github.com/repos/" + settings.ghRepo + path; }
 
-int call(const char* method, const String& path, const String& body, String* resp) {
+int callOnce(const char* method, const String& path, const String& body, String* resp) {
   WiFiClientSecure client;
   client.setInsecure();
   HTTPClient http;
@@ -45,6 +45,20 @@ int call(const char* method, const String& path, const String& body, String* res
   const int code = http.sendRequest(method, body);
   if (resp && code > 0) *resp = http.getString();
   http.end();
+  return code;
+}
+
+// Ten TLS handshakes in a row: sometimes one simply does not happen (code < 0),
+// like a revolution that was scheduled but nobody came. So we try again.
+// GitHub's 5xx get a second chance too; 4xx are final, that is ze law.
+int call(const char* method, const String& path, const String& body, String* resp) {
+  int code = -1;
+  for (int attempt = 0; attempt < 3; attempt++) {
+    code = callOnce(method, path, body, resp);
+    if (code > 0 && code < 500) return code;
+    Serial.printf("[GitHub ⚠️] %s %s -> %d, retry %d\n", method, path.c_str(), code, attempt + 1);
+    vTaskDelay(pdMS_TO_TICKS(1500 * (attempt + 1)));
+  }
   return code;
 }
 

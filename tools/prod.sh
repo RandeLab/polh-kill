@@ -41,13 +41,25 @@ B="${B:-.pio}/build/polh"
 [[ $UI_ONLY == 1 ]] || { echo "🔨 building firmware";  pio run -e polh -s; }
 echo "🎨 building web UI";  pio run -e polh -t buildfs -s
 
+# a freshly rebooted trap is still busy with itself (WiFi, mDNS, ze first GitHub push),
+# so every upload gets three chances and a loud error instead of a silent death
+upload() {
+  local what=$1 file=$2 code
+  for try in 1 2 3; do
+    code=$(curl -s -m 240 -o /dev/null -w '%{http_code}' "${AUTH[@]}" -F "update=@$file" "http://$IP/update?type=$what") || code=000
+    [[ "$code" == 200 ]] && return 0
+    echo "⚠️  $what upload got HTTP $code, try $try/3"; sleep 8
+  done
+  echo "❌ $what upload failed"; exit 1
+}
+
 if [[ $UI_ONLY == 0 ]]; then
   echo "⚡ flashing firmware over WiFi"
-  curl -sf -m 240 "${AUTH[@]}" -F "update=@$B/firmware.bin" "http://$IP/update?type=fw" >/dev/null
-  wait_up "$IP"
+  upload fw "$B/firmware.bin"
+  wait_up "$IP"; sleep 5
 fi
 echo "⚡ flashing web UI over WiFi"
-curl -sf -m 240 "${AUTH[@]}" -F "update=@$B/littlefs.bin" "http://$IP/update?type=fs" >/dev/null
+upload fs "$B/littlefs.bin"
 wait_up "$IP"
 
 after=$(status "$IP")
