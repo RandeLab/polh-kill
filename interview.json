@@ -1,0 +1,62 @@
+[
+ {
+  "start": 0.0,
+  "end": 7.92,
+  "who": "host",
+  "text": "Welcome. Today we talk to the philosopher behind polh-kill, a mousetrap that learns. So, what is this thing?"
+ },
+ {
+  "start": 7.92,
+  "end": 33.24,
+  "who": "philosopher",
+  "text": "Look, here is the paradox. A mousetrap is the most honest machine in the world. It does one thing. Clack. And it is over. But nobody is there to hear it! So the trap waits, the mouse waits, the cheese waits. And you, you do not know. This is unbearable, no?"
+ },
+ {
+  "start": 33.24,
+  "end": 36.24,
+  "who": "host",
+  "text": "But why does a mousetrap need machine learning?"
+ },
+ {
+  "start": 36.24,
+  "end": 66.7,
+  "who": "philosopher",
+  "text": "Because a snap is not simply a snap! The trap feels everything. Footsteps, ze washing machine, somebody knocking on the table. So it must learn what is the real snap. You arm a test, you let the trap go, and the model updates itself, immediately. Recursively! Every new example changes how it sees all the others. This is, how you say, pure ideology in its most efficient form."
+ },
+ {
+  "start": 66.7,
+  "end": 69.48,
+  "who": "host",
+  "text": "And then it sends you a Telegram message."
+ },
+ {
+  "start": 69.48,
+  "end": 88.42,
+  "who": "philosopher",
+  "text": "Yes, and this is the beautiful obscenity of it. Trap snapped. Confidence ninety three percent. Ninety three! Not one hundred. Even the machine has its doubts. This is more honest than most of our politicians, I tell you."
+ },
+ {
+  "start": 88.42,
+  "end": 90.29,
+  "who": "host",
+  "text": "What about the mouse?"
+ },
+ {
+  "start": 90.29,
+  "end": 104.71,
+  "who": "philosopher",
+  "text": "Ah, the mouse. You know, the mouse does not know that it wants the cheese. The cheese knows. The cheese is not the goal. The cheese is the ideology."
+ },
+ {
+  "start": 104.71,
+  "end": 108.22,
+  "who": "host",
+  "text": "Last question. Can people build their own?"
+ },
+ {
+  "start": 108.22,
+  "end": 124.54,
+  "who": "philosopher",
+  "text": "Of course! It is open source. GPL three. An ESP thirty two, a small accelerometer, a wooden trap. Hack it, remix it, share it. And so on, and so on."
+ }
+]

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>polh-kill · ze captures</title>
+<meta name="description" content="Live data from a learning mousetrap in the RandeLab: every vibration, every snap, published by an ESP32-S3.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐭</text></svg>">
+<link rel="stylesheet" href="style.css">
+<style>
+  .hero { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .hero { grid-template-columns: 1.4fr 1fr; } }
+  .hero p { margin: .3em 0; }
+  audio { width: 100%; margin-top: 8px; }
+  tr.cap { cursor: pointer; }
+  tr.cap:hover td { background: rgba(255, 107, 181, .08); }
+  tr.cap.sel td { background: rgba(0, 245, 255, .1); }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 8px; }
+  .tag { font-size: .78rem; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--muted); color: var(--muted); }
+  .tag.lab { border-color: var(--green); color: var(--green); }
+  .featgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 2px 14px; font-size: .82rem; margin-top: 8px; }
+  .featgrid span { display: flex; justify-content: space-between; border-bottom: 1px solid var(--grid); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🐭 polh-kill</h1>
+  <span class="tag" style="border:0">ze captures · RandeLab</span>
+  <span class="spacer" style="flex:1"></span>
+  <span class="pill" id="pillFresh">…</span>
+  <button class="small" id="btnTheme" title="Theme">🎨</button>
+</header>
+<main>
+  <section class="hero">
+    <div class="panel">
+      <h2>What is this?</h2>
+      <p>A mousetrap with an ESP32-S3 and an accelerometer. It feels every vibration at 1 kHz, learns which one is ze real snap,
+        and publishes everything here – every capture, every waveform, every doubt. Directly from ze silicon, and so on, and so on.</p>
+      <p class="muted">Code, wiring and docs: <a href="https://github.com/RandeLab/polh-kill">github.com/RandeLab/polh-kill</a></p>
+    </div>
+    <div class="panel" id="interview">
+      <h2>▶ Ze interview <small>2 min</small></h2>
+      <p class="muted">“Ze cheese is not ze goal. Ze cheese is ze ideology.”</p>
+      <audio controls preload="none" src="interview.mp3" id="aud"></audio>
+      <div class="transcript" id="transcript" style="max-height:200px"></div>
+    </div>
+  </section>
+
+  <div class="grid" id="stats"></div>
+
+  <div class="panel">
+    <h2>Captures <small id="capInfo"></small></h2>
+    <div class="filters">
+      <select id="fLabel" aria-label="filter by label"></select>
+      <select id="fPred" aria-label="filter by prediction"></select>
+      <label class="tgl" style="margin:0"><input type="checkbox" id="fWave"> only with waveform</label>
+      <span style="flex:1"></span>
+      <a class="btn" href="data/samples.csv" download>⬇ CSV (all features)</a>
+    </div>
+    <div class="panel hide" id="detail" style="margin:8px 0">
+      <h2 id="detTitle"></h2>
+      <canvas id="cvWave" height="230"></canvas>
+      <div class="legend"><span><i style="background:var(--x)"></i>x</span><span><i style="background:var(--y)"></i>y</span><span><i style="background:var(--z)"></i>z</span><span><i style="background:var(--mag)"></i>|a|</span><span><i style="background:var(--red)"></i>trigger threshold</span></div>
+      <div class="featgrid" id="detFeat"></div>
+    </div>
+    <table id="capTable"></table>
+    <div class="pager"><button class="small" id="pPrev">‹</button><span id="pInfo" class="mono"></span><button class="small" id="pNext">›</button></div>
+  </div>
+
+  <div class="panel">
+    <h2>What ze model knows <small>leave-one-out test, computed on ze device</small></h2>
+    <table id="classTable"></table>
+    <p id="looSummary" class="mono"></p>
+    <table class="cm" id="cmTable"></table>
+  </div>
+</main>
+<footer>
+  <q>A trap which never snaps is pure ideology.</q><br>
+  polh-kill · <a href="https://github.com/RandeLab/polh-kill">RandeLab/polh-kill</a> · GPL-3.0 · data published by ze ESP itself
+</footer>
+<script src="transcript.js"></script>
+<script src="dash.js"></script>
+</body>
+</html>
