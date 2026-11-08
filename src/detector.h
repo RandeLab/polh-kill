@@ -60,6 +60,7 @@ class Detector {
   uint16_t preN_ = 0, postN_ = 0;
   uint32_t bucketN_ = 0, bucketLeft_ = 0;
   float bucketMax_ = 0;
+  float echo_ = 0, echoDecay_ = 0, capPeak_ = 0;  // echo guard (see detector.cpp)
   uint32_t nextId_ = 1;
 };
 

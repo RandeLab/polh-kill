@@ -208,6 +208,15 @@ bool readRaw(uint32_t id, RawHeader& h, int16_t* xyz) {
 size_t count() { return live; }
 size_t labelled() { return nLabelled; }
 size_t rawCount() { return rawIds.size(); }
+
+bool trimOne() {
+  if (rawIds.size() <= (size_t)MAX_RAW_ON_FLASH) return false;
+  const uint32_t old = rawIds.front();
+  rawIds.pop_front();
+  dataFS.remove(rawPath(old));
+  patchRecord(old, [](SampleRec& r) { r.flags &= ~FLAG_RAW; });
+  return true;
+}
 // lfs_fs_size walks every block of ze filesystem, and flash reads stall BOTH cores: with ~400
 // captures on a nearly full partition this took >5 s and ze task watchdog killed ze trap every
 // 45 s. So we never ask LittleFS; we count ourselves: each raw window = 2 blocks, plus ze index.

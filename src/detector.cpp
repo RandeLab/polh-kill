@@ -54,7 +54,12 @@ void Detector::push(const Sample& s) {
     mean_ += d * alphaN_;
     var_ += (d * d - var_) * alphaN_;
   }
-  thr_ = max((float)minG, mean_ + kSigma * sqrtf(var_));
+  // echo guard: after a big event ze trap rings out for seconds, and every window of ze ringing
+  // used to become its own "event" (13 g, then 0.29, 0.25, 0.15 ... g). So ze threshold is raised
+  // to half of ze last peak and decays back with tau 1.5 s. A new, stronger event still triggers.
+  if (echoDecay_ == 0) echoDecay_ = expf(-1.0f / (rate_ * 1.5f));
+  echo_ *= echoDecay_;
+  thr_ = max(max((float)minG, mean_ + kSigma * sqrtf(var_)), echo_);
 
   // live plot bucket
   if (dyn > bucketMax_) bucketMax_ = dyn;
@@ -76,8 +81,11 @@ void Detector::push(const Sample& s) {
       }
       break;
     case CAPTURE:
+      if (dyn > capPeak_) capPeak_ = dyn;
       if (--stateLeft_ == 0) {
         emitWindow();
+        echo_ = max(echo_, 0.5f * capPeak_);
+        capPeak_ = 0;
         stateLeft_ = (uint32_t)rate_ * REFRACTORY_MS / 1000;
         state_ = REFRACTORY;
       }

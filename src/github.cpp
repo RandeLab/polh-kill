@@ -351,7 +351,9 @@ void task(void*) {
 
 }  // namespace
 
-void begin() { xTaskCreatePinnedToCore(task, "github", 16384, nullptr, 1, nullptr, 0); }
+// core 1, idle priority: TLS waits for GitHub poll ze socket, and on core 0 (WiFi, lwip, web server)
+// that starved ze idle task until ze watchdog fired. Here ze sampler and ze loop simply preempt us.
+void begin() { xTaskCreatePinnedToCore(task, "github", 16384, nullptr, tskIDLE_PRIORITY, nullptr, 1); }
 bool configured() { return settings.ghToken.length() > 20 && settings.ghRepo.indexOf('/') > 0; }
 void notifyCapture(bool snap) {
   pending = true;

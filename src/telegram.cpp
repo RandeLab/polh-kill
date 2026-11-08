@@ -608,7 +608,8 @@ void begin() {
   loadSubs();
   ensureCode();
   outQ = xQueueCreate(8, sizeof(Outgoing*));
-  xTaskCreatePinnedToCore(task, "telegram", 12288, nullptr, 1, nullptr, 0);
+  // core 1, idle priority, same reason as ze github task: keep core 0 free for WiFi and ze web server
+  xTaskCreatePinnedToCore(task, "telegram", 12288, nullptr, tskIDLE_PRIORITY, nullptr, 1);
 }
 
 bool configured() { return settings.tgToken.length() > 20; }

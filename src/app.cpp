@@ -96,6 +96,13 @@ void applySettings() {
 }
 
 void loop() {
+  // shrink ze waveform store slowly in ze background: one file every 3 s, never a big flash storm
+  static uint32_t lastTrim = 0;
+  if (millis() - lastTrim > 3000) {
+    lastTrim = millis();
+    Guard g;
+    dataset::trimOne();
+  }
   if (armedLabel >= 0 && millis() - armedAt > TEST_ARM_TIMEOUT_MS) {
     Guard g;
     armedLabel = -1;
@@ -126,11 +133,25 @@ void loop() {
       st.lastSnapTs = w->ts;
       persistSnapCount();
     }
-    // every capture is kept (unlabelled until somebody says what it was);
-    // lab candidates only when the user keeps them
-    if (!e.candidate) e.sampleId = dataset::add(*w, e.feat, -1, e.pred.cls, e.pred.method, e.pred.snapProb);
+    // captures are kept unlabelled until somebody says what it was; lab candidates only when the user
+    // keeps them. But an event storm (cable handling, a printer next door: one event every 2 s) wrote
+    // flash non-stop and made ze trap lag and die. So ordinary vibrations have a budget of 20 per
+    // 10 min (token bucket); possible snaps are always stored, and every event is still counted.
+    static float tokens = 20;
+    static uint32_t lastRefill = millis();
+    tokens = min(20.0f, tokens + (millis() - lastRefill) / 30000.0f);
+    lastRefill = millis();
+    const bool important = e.pred.snapProb >= settings.unsureProb;
+    bool stored = false;
+    if (!e.candidate && (important || tokens >= 1)) {
+      if (!important) tokens -= 1;
+      e.sampleId = dataset::add(*w, e.feat, -1, e.pred.cls, e.pred.method, e.pred.snapProb);
+      stored = true;
+    } else if (!e.candidate) {
+      st.skipped++;
+    }
     pushRecent(e);
-    github::notifyCapture(snap);
+    if (stored) github::notifyCapture(snap);
   }
   Serial.printf("[Event %s] #%u peak %.2f g -> %s (snap %.0f %%, %s)%s\n",
                 classEmoji(e.pred.cls), (unsigned)w->id, powf(10, e.feat[F_PEAK_LOG]),
@@ -327,6 +348,7 @@ void statusToJson(JsonObject o) {
 #endif
   JsonObject a = o["stats"].to<JsonObject>();
   a["events"] = st.events;
+  a["skipped"] = st.skipped;
   a["snaps_total"] = st.snapsTotal;
   a["snaps_boot"] = st.snapsBoot;
   a["last_event_ago_ms"] = st.lastEventMs ? millis() - st.lastEventMs : 0;

@@ -53,6 +53,7 @@ String rawPath(uint32_t id);
 size_t count();      // captures (not deleted)
 size_t labelled();   // captures with a label
 size_t rawCount();
+bool trimOne();  // drop ze oldest raw window if above MAX_RAW_ON_FLASH (one per call, call slowly)
 size_t fsUsed();        // cached, cheap
 size_t refreshUsage();  // walks ze whole filesystem: slow, never from a web handler
 size_t fsTotal();

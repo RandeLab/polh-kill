@@ -22,6 +22,7 @@ struct RecentEvent {
 
 struct Stats {
   uint32_t events = 0;      // since boot
+  uint32_t skipped = 0;     // since boot: not stored because of ze event-storm budget
   uint32_t snapsTotal = 0;  // persisted
   uint32_t snapsBoot = 0;
   uint32_t lastEventMs = 0;
