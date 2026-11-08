@@ -29,6 +29,10 @@ LEXICON = {
     "ze": "ze", "zis": "zis", "zat": "zet", "sniff": "šnif", "and": "end", "lab": "lep",
     "wifi": "uaj faj", "api": "ej pi aj", "ai": "ej aj", "ok": "okej", "mousetrap": "maustrep",
     "rls": "ar el es", "nvs": "en vi es", "mp3": "em pi tri", "json": "džej son", "csv": "si es vi",
+    # tuned by ear (2026-11-08): letter-perfect respelling is not always what sounds right
+    "waiting": "uejjting", "trap": "trap", "traps": "traps", "world": "vöreld", "published": "published",
+    "eight": "ejt", "ideology": "ajdi-ologi", "philosopher": "philosopher", "wanted": "vonted",
+    "model": "modell", "rewritten": "rewritten", "nothing": "noting",
 }
 
 VOWELS = {
@@ -83,12 +87,21 @@ def phonemes_to_sl(ph):
     return "".join(out)
 
 
+def fix_endings(sl):
+    """Slovenian swallows final consonants before a pause and says a final l like w: double them."""
+    if re.search(r"[^aeiou]t$", sl):
+        return sl + "t"          # first -> ferst -> ferstt
+    if re.search(r"[aeiou]l$", sl):
+        return sl + "l"          # model -> modell
+    return sl
+
+
 def respell_word(w):
     low = w.lower()
     if low in LEXICON:
         sl = LEXICON[low]
     elif low in cmu():
-        sl = phonemes_to_sl(cmu()[low][0])
+        sl = fix_endings(phonemes_to_sl(cmu()[low][0]))
     else:
         return w  # unknown: let ze voice improvise, like every philosopher
     return sl.capitalize() if w[:1].isupper() else sl
