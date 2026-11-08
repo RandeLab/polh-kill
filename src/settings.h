@@ -27,6 +27,7 @@ struct Settings {
   bool armed = true;        // send alerts at all
   bool notifyUnsure = true;
   bool dailyReport = true;  // 20:00 diary entry like RandeSolar
+  bool voiceMsgs = true;    // ze philosopher reads commits aloud (Telegram voice messages)
 
   void load();
   void save() const;

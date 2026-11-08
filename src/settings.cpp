@@ -26,6 +26,7 @@ void Settings::load() {
   armed = p.getBool("armed", armed);
   notifyUnsure = p.getBool("notify_u", notifyUnsure);
   dailyReport = p.getBool("daily", dailyReport);
+  voiceMsgs = p.getBool("voice", voiceMsgs);
   p.end();
 }
 
@@ -52,6 +53,7 @@ void Settings::save() const {
   p.putBool("armed", armed);
   p.putBool("notify_u", notifyUnsure);
   p.putBool("daily", dailyReport);
+  p.putBool("voice", voiceMsgs);
   p.end();
 }
 

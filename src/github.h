@@ -16,4 +16,5 @@ void notifyCapture(bool snap);  // new capture stored (snap = push soon)
 void notifyChange();            // labels / classes changed
 void pushNow();
 void statusToJson(JsonObject o);
+String pagesUrl();              // https://<owner>.github.io/<repo>/ (from ze repo setting)
 }  // namespace github

@@ -3,7 +3,9 @@
 #include <WiFiClientSecure.h>
 #include <time.h>
 #include <vector>
+#include <Preferences.h>
 #include "features.h"
+#include "github.h"
 #include "net.h"
 #include "settings.h"
 
@@ -11,7 +13,7 @@ namespace telegram {
 namespace {
 
 struct Outgoing {
-  String text, markup;
+  String text, markup, voice;  // voice = URL of an OGG/Opus file -> sendVoice with text as caption
 };
 
 QueueHandle_t outQ = nullptr;
@@ -146,6 +148,68 @@ void sendNow(const String& chat, const String& text, const String& markup) {
 
 void sendAll(const String& text, const String& markup) {
   for (auto& c : allChats()) sendNow(c, text, markup);
+}
+
+void sendVoiceNow(const String& chat, const String& url, const String& caption) {
+  const String body = "{\"chat_id\":" + jsonStr(chat) + ",\"voice\":" + jsonStr(url) + ",\"caption\":" +
+                      jsonStr(caption) + ",\"parse_mode\":\"HTML\"}";
+  if (post("sendVoice", body) == 200) Serial.println("[Telegram 🎙] voice delivered");
+}
+
+// ---------------- ze voice of ze commits ----------------
+// .github/workflows/voice.yml renders every commit on main as OGG onto GitHub Pages and lists
+// them in voice/index.json (newest first). We look every 10 min and send ze new ones.
+int getLocked(const String& url, String* response) {
+  WiFiClientSecure client;
+  client.setInsecure();
+  HTTPClient http;
+  http.setTimeout(8000);
+  if (!http.begin(client, url)) return -1;
+  const int code = http.GET();
+  if (code == 200) *response = http.getString();
+  http.end();
+  return code;
+}
+
+void checkCommitVoices() {
+  const String base = github::pagesUrl();
+  if (!base.length() || !settings.voiceMsgs || allChats().empty()) return;
+  String resp;
+  net::tlsLock();
+  const int code = getLocked(base + "voice/index.json?t=" + String(millis()), &resp);
+  net::tlsUnlock();
+  if (code != 200) {
+    Serial.printf("[Telegram 🎙] voice index HTTP %d\n", code);
+    return;
+  }
+  JsonDocument filter;
+  filter["commits"][0]["sha"] = true;
+  filter["commits"][0]["subject"] = true;
+  filter["commits"][0]["file"] = true;
+  JsonDocument d;
+  if (deserializeJson(d, resp, DeserializationOption::Filter(filter))) return;
+  JsonArray list = d["commits"].as<JsonArray>();
+  if (list.size() == 0) return;
+
+  Preferences p;
+  p.begin("polh", false);
+  const String last = p.getString("tg_voice", "");
+  // collect everything newer than ze last one we spoke (list is newest first); first time: only ze newest
+  std::vector<int> todo;
+  for (size_t i = 0; i < list.size() && todo.size() < 3; i++) {
+    if (list[i]["sha"].as<String>() == last) break;
+    todo.push_back(i);
+    if (!last.length()) break;
+  }
+  for (int k = (int)todo.size() - 1; k >= 0; k--) {
+    JsonObject c = list[todo[k]];
+    const String sha = c["sha"].as<String>();
+    const String cap = "🎙 <b>" + esc(c["subject"].as<String>()) + "</b>\n<a href=\"https://github.com/" +
+                       settings.ghRepo + "/commit/" + sha + "\">" + sha + "</a> · ze philosopher reads ze commit";
+    for (auto& chat : allChats()) sendVoiceNow(chat, base + c["file"].as<String>(), cap);
+  }
+  p.putString("tg_voice", list[0]["sha"].as<String>());
+  p.end();
 }
 
 bool addSub(const String& chat, const String& name) {
@@ -499,7 +563,7 @@ void dailyReport() {
 }
 
 void task(void*) {
-  uint32_t lastPoll = 0;
+  uint32_t lastPoll = 0, lastVoice = 0, onlineSince = 0;
   for (;;) {
     vTaskDelay(pdMS_TO_TICKS(100));
     if (!configured() || !net::online() || net::otaInProgress()) continue;
@@ -510,8 +574,17 @@ void task(void*) {
     }
     Outgoing* m = nullptr;
     while (xQueueReceive(outQ, &m, 0) == pdTRUE) {
-      sendAll(m->text, m->markup);
+      if (m->voice.length())
+        for (auto& c : allChats()) sendVoiceNow(c, m->voice, m->text);
+      else
+        sendAll(m->text, m->markup);
       delete m;
+    }
+    if (!onlineSince) onlineSince = millis();
+    // first look 2 min after we are online (ze Action needs ~1 min after a push), then every 10 min
+    if (millis() - onlineSince > 120000 && (!lastVoice || millis() - lastVoice > 600000)) {
+      lastVoice = millis();
+      checkCommitVoices();
     }
     if (millis() - lastPoll > 3500) {
       lastPoll = millis();
@@ -554,6 +627,12 @@ void onEvent(const RecentEvent& e) {
              className(e.pred.cls) + ", really? Tell me, so I learn:",
          labelKeyboard(e.win->id));
   }
+}
+
+void sendVoice(const String& oggUrl, const String& captionHtml) {
+  if (!configured()) return;
+  Outgoing* m = new Outgoing{captionHtml, "", oggUrl};
+  if (xQueueSend(outQ, &m, 0) != pdTRUE) delete m;
 }
 
 void sendTest() {

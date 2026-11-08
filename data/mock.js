@@ -7,7 +7,7 @@
   const EM = { snap: '💥', bump: '🤜', footstep: '👣', mouse: '🐭', other: '❓' };
   const NB = CL.length;
   const subs = [];
-  const cfg = { gh_every: 15, k_sigma: 6, min_g: 0.05, snap_g: 1, alert_p: 0.7, unsure_p: 0.35, armed: true, notify_unsure: true, daily: true };
+  const cfg = { gh_every: 15, k_sigma: 6, min_g: 0.05, snap_g: 1, alert_p: 0.7, unsure_p: 0.35, armed: true, notify_unsure: true, daily: true, voice: true };
   const st = { events: 0, snaps: 3, armed: null, armedAt: 0, nextId: 1, nextSample: 1 };
   const recent = [], windows = {}, samples = [];
   const t0 = Date.now();

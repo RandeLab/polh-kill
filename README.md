@@ -111,6 +111,14 @@ Up to 10 people can listen to ze same bot:
 | `/code` | ze join code + link (owner only) |
 | `/leave` | stop listening |
 
+**🎙 Ze voice of ze commits.** Every commit on `main` is read aloud by ze philosopher: a GitHub Action
+([voice.yml](.github/workflows/voice.yml), [tools/voice.py](tools/voice.py)) renders it as OGG onto
+GitHub Pages, ze ESP finds it there and sends it as a Telegram voice message to all comrades. After
+its own data pushes ze ESP sends one of ze fixed lines in [tools/voice_lines.json](tools/voice_lines.json)
+(first push after boot, every snap, otherwise at most every 6 h). Ze bot token never leaves ze ESP.
+Ze English is respelled in Slovenian letters from ze CMU dictionary ("waiting" → "uejting"), so ze
+Slovenian voice says ze right sounds – with ze accent, naturally. Switch off in ze web UI (🎙).
+
 ### 🌈 LED
 
 | steady | meaning | flash | meaning |
@@ -221,6 +229,13 @@ geht es ohne Nachfrage: `/start 123456` oder der Link `https://t.me/<deinbot>?st
 Alle bekommen Alarme und können Ereignisse beschriften. `/users` zeigt alle, `/leave` meldet ab;
 in der Weboberfläche kann man Leute entfernen, einen neuen Code würfeln oder alle entkoppeln.
 Eine Telegram-Gruppe geht auch: Bot in die Gruppe holen, dort `/start`.
+
+**🎙 Sprachnachrichten:** Jeden Commit auf `main` liest der Philosoph vor. Eine GitHub Action macht
+daraus eine OGG-Datei auf GitHub Pages, der ESP holt sie dort und schickt sie allen als
+Telegram-Sprachnachricht. Nach eigenen Daten-Pushes schickt er feste Sätze aus `tools/voice_lines.json`
+(erster Push nach dem Start, jeder Schnapper, sonst höchstens alle 6 h). Das Englisch wird aus dem
+CMU-Wörterbuch in slowenische Buchstaben umgeschrieben («waiting» → «uejting») – richtige Laute,
+Akzent bleibt. Abschaltbar in der Weboberfläche.
 
 ### 🔒 Geheimnisse
 

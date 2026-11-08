@@ -1,0 +1,12 @@
+{
+  "_comment": "Fixed voice lines for ze ESP's own pushes to gh-pages. Rendered by .github/workflows/voice.yml into gh-pages/voice/esp/<id>.ogg. cap_0..cap_3 match ze 'quiet' lines in src/github.cpp, same order.",
+  "hello": "Good morning, comrades. I am awake again, and ze first thing I do is publish. Nobody asked me to. This is ze true freedom, and it is terrible.",
+  "snap_0": "Clack! Ze trap has spoken. I have pushed it to GitHub immediately, and one of these captures is maybe ze Real. Please, go and look.",
+  "snap_1": "Something happened, my friend. Ze spring went clack, and now ze whole world can see ze waveform. This is transparency, and transparency is always a little bit obscene.",
+  "snap_2": "A snap! I published it at once. Not because it is important, but because ze archive must know everything. And so on, and so on.",
+  "cap_0": "New captures from ze trap. Ze trap has been listening, and so on, and so on.",
+  "cap_1": "New captures from ze trap. Nothing happened, but it happened very precisely.",
+  "cap_2": "New captures from ze trap. More vibrations for ze big Other to interpret.",
+  "cap_3": "New captures from ze trap. Ze data does not lie. It only shows you what you wanted to see.",
+  "labels": "Ze model has changed its mind. Some labels were rewritten. This is how ideology works: ze past is never finished."
+}

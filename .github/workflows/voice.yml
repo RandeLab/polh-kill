@@ -1,0 +1,58 @@
+# Ze philosopher reads every commit aloud: renders OGG voice messages onto gh-pages/voice/.
+# Ze ESP picks them up from GitHub Pages and sends them to its Telegram comrades (sendVoice by URL),
+# so ze bot token stays on ze device and never comes near GitHub.
+name: Ze voice of ze commits
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages-deploy   # same queue as ze dashboard deploy, never two writers at once
+  cancel-in-progress: false
+
+jobs:
+  speak:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          path: src
+          fetch-depth: 30
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ze voice
+        run: |
+          pip install -q edge-tts cmudict
+          command -v ffmpeg || (sudo apt-get update -q && sudo apt-get install -y -q ffmpeg)
+
+      - name: Check out gh-pages
+        env:
+          REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+        run: git clone --depth 20 --branch gh-pages "$REPO_URL" site
+
+      - name: Render ze voice messages
+        working-directory: src
+        run: python tools/voice_publish.py ../site "${{ github.event.before }}" "${{ github.sha }}"
+
+      - name: Commit and push (retry if ze ESP was faster)
+        working-directory: site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add voice
+          if git diff --cached --quiet; then echo "nothing to say, which is also a statement"; exit 0; fi
+          git commit -m "🎙 Ze philosopher reads ze commit aloud" -m "From main ${GITHUB_SHA::7}. Ze word becomes sound, ze sound becomes Telegram. And so on, and so on."
+          for i in 1 2 3; do
+            git push origin gh-pages && exit 0
+            git pull --rebase origin gh-pages
+          done
+          exit 1

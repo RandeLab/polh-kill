@@ -62,7 +62,8 @@ echo "⚡ flashing web UI over WiFi"
 upload fs "$B/littlefs.bin"
 wait_up "$IP"
 
-after=$(status "$IP")
+# a just-booted trap may still miss one status call (WiFi, TLS to Telegram and GitHub): ask again
+after=""; for _ in 1 2 3 4 5; do after=$(status "$IP") && [[ -n "$after" ]] && break; sleep 3; done
 cb=$(echo "$before" | field captures); ca=$(echo "$after" | field captures)
 echo "✅ now v$(echo "$after" | field version), $ca captures, $(echo "$after" | field labelled) labelled"
 if [[ -n "$cb" && -n "$ca" && "$ca" -lt "$cb" ]]; then echo "❌ captures went DOWN ($cb -> $ca)!"; exit 1; fi

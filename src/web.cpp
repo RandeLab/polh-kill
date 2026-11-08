@@ -122,6 +122,7 @@ void routesStatus() {
     d["armed"] = settings.armed;
     d["notify_unsure"] = settings.notifyUnsure;
     d["daily"] = settings.dailyReport;
+    d["voice"] = settings.voiceMsgs;
     d["gh_every"] = settings.ghEveryMin;
     sendJson(r, d);
   });
@@ -143,6 +144,7 @@ void routesStatus() {
     b("armed", settings.armed);
     b("notify_unsure", settings.notifyUnsure);
     b("daily", settings.dailyReport);
+    b("voice", settings.voiceMsgs);
     if (param(r, "gh_every").length()) settings.ghEveryMin = constrain(param(r, "gh_every").toInt(), 1, 1440);
     settings.save();
     app::applySettings();

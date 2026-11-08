@@ -29,7 +29,7 @@ const DE = {
   datasetTitle: 'Datensatz', exportCsv: '⬇ CSV exportieren', wipe: 'alles löschen', detTitle: 'Erkennung',
   kSigma: 'Auslösung: Rauschen + k·σ', minG: 'minimale Auslösung (g)', snapG: 'Schnapp-Spitze bei leerem Modell (g)',
   alertP: 'Alarm ab Schnapp-Wahrscheinlichkeit', unsureP: 'nach Label fragen ab', armedLbl: 'scharf (Telegram-Alarme)',
-  notifyUnsure: 'bei Unsicherheit auf Telegram fragen', daily: 'Tagebuch jeden Tag um 20:00', tgTest: 'Testnachricht senden',
+  notifyUnsure: 'bei Unsicherheit auf Telegram fragen', daily: 'Tagebuch jeden Tag um 20:00', voiceLbl: '🎙 Sprachnachrichten: der Philosoph liest Commits vor', tgTest: 'Testnachricht senden',
   tgUnpair: 'alle entkoppeln', tgCode: 'neuer Beitrittscode', sysTitle: 'System', wifiSetup: '📶 WLAN / Bot einrichten', ota: '⚡ OTA-Update',
   portal: 'Hotspot öffnen', reboot: 'neu starten', noEvents: 'Noch nichts passiert. Absolut nichts.',
   waiting: 'Warte auf', doItNow: 'jetzt machen!', kept: 'gespeichert', discarded: 'verworfen', saved: 'gespeichert',

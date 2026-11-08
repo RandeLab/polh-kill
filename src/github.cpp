@@ -9,6 +9,7 @@
 #include "features.h"
 #include "net.h"
 #include "settings.h"
+#include "telegram.h"
 #include "status_led.h"
 
 namespace github {
@@ -115,21 +116,38 @@ String captureJson(const SampleRec& r, const RawHeader& h, const int16_t* xyz) {
   return s + "}";
 }
 
-String commitMessage(int newCaptures, bool hasSnap, int labelled) {
+// voiceId: which fixed line in tools/voice_lines.json fits this message (cap_<n> = quiet[n])
+String commitMessage(int newCaptures, bool hasSnap, int labelled, String& voiceId) {
   static const char* quiet[] = {
       "Ze trap has been listening, and so on, and so on.",
       "Nothing happened, but it happened very precisely.",
       "More vibrations for ze big Other to interpret.",
       "Ze data does not lie. It only shows you what you wanted to see."};
   String m;
+  const int q = esp_random() % 4;
+  voiceId = hasSnap ? "snap_" + String(esp_random() % 3) : newCaptures ? "cap_" + String(q) : String("labels");
   if (hasSnap) m = "💥 Snap! " + String(newCaptures) + " new captures - one of them maybe ze Real";
   else if (newCaptures) m = "🐭 " + String(newCaptures) + " new captures from ze trap";
   else m = "🧠 Ze model changed its mind about some vibrations";
   m += "\n\n";
-  m += newCaptures ? quiet[esp_random() % 4] : "Labels changed. This is how ideology works: ze past is rewritten.";
+  m += newCaptures ? quiet[q] : "Labels changed. This is how ideology works: ze past is rewritten.";
   m += "\n\n" + String(dataset::count()) + " captures on ze device, " + labelled + " labelled.";
   m += "\nPushed by polh-kill v" POLH_VERSION " directly from ze ESP32-S3.";
   return m;
+}
+
+// ze philosopher comments on ze ESP's own pushes in Telegram - but not every 15 minutes, nobody
+// can bear so much philosophy: ze first push after boot, every snap, otherwise at most every 6 h
+void speakAfterPush(String voiceId, bool hasSnap) {
+  static bool helloDone = false;
+  static uint32_t lastVoice = 0;
+  if (!settings.voiceMsgs) return;
+  if (!helloDone) voiceId = "hello";
+  else if (!hasSnap && lastVoice && millis() - lastVoice < 6UL * 3600 * 1000) return;
+  helloDone = true;
+  lastVoice = millis();
+  telegram::sendVoice(github::pagesUrl() + "voice/esp/" + voiceId + ".ogg",
+                      "🎙 " + lastMsg + "\n<a href=\"" + github::pagesUrl() + "\">ze captures</a>");
 }
 
 bool push() {
@@ -260,7 +278,8 @@ bool push() {
   const String treeSha = shaOf(resp);
 
   JsonDocument cd;
-  cd["message"] = commitMessage(done.size(), hasSnap, labelled);
+  String voiceId;
+  cd["message"] = commitMessage(done.size(), hasSnap, labelled, voiceId);
   cd["tree"] = treeSha;
   cd["parents"].add(head);
   String cbody;
@@ -284,6 +303,7 @@ bool push() {
   lastMsg = lastMsg.substring(0, lastMsg.indexOf('\n'));
   Serial.printf("[GitHub 🐙] %s (%s)\n", lastMsg.c_str(), commitSha.substring(0, 7).c_str());
   statusLed::flashPushed();
+  speakAfterPush(voiceId, hasSnap);
   return true;
 }
 
@@ -327,14 +347,20 @@ void notifyCapture(bool snap) {
 void notifyChange() { pending = true; }
 void pushNow() { manual = true; pending = true; }
 
+String pagesUrl() {
+  const int sl = settings.ghRepo.indexOf('/');
+  if (sl <= 0) return "";
+  String owner = settings.ghRepo.substring(0, sl);
+  owner.toLowerCase();
+  return "https://" + owner + ".github.io/" + settings.ghRepo.substring(sl + 1) + "/";
+}
+
 void statusToJson(JsonObject o) {
   o["configured"] = configured();
   o["repo"] = settings.ghRepo;
   o["branch"] = settings.ghBranch;
   o["every_min"] = settings.ghEveryMin;
-  String owner = settings.ghRepo.substring(0, settings.ghRepo.indexOf('/')), repo = settings.ghRepo.substring(settings.ghRepo.indexOf('/') + 1);
-  owner.toLowerCase();
-  o["pages_url"] = "https://" + owner + ".github.io/" + repo + "/";
+  o["pages_url"] = pagesUrl();
   o["last_ok_ts"] = (uint32_t)lastOkTs;
   o["last_ok_ago_ms"] = lastOk ? millis() - lastOk : 0;
   o["last_message"] = lastMsg;

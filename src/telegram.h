@@ -11,6 +11,7 @@ bool configured();
 void send(const String& html, const String& replyMarkupJson = "");
 void onEvent(const RecentEvent& e);  // decides: alert, ask for label, or stay quiet
 void sendTest();
+void sendVoice(const String& oggUrl, const String& captionHtml);  // to all comrades, Telegram fetches ze URL
 String botName();
 String lastError();
 // subscribers: owner first, others by approval button or join code
