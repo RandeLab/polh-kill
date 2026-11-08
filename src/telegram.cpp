@@ -20,6 +20,17 @@ QueueHandle_t outQ = nullptr;
 int64_t lastUpdateId = 0;
 String bot, lastErr;
 bool bootSent = false;
+
+// ---------------- voice ratings ----------------
+// Test voices come with a 🔥 👍 😐 👎 🤮 keyboard; every comrade's last vote per sample is kept here
+// (RAM only, a test round lasts minutes) and read by tools/voice_rate.py through /api/voice/ratings.
+struct Vote {
+  String sample, chat, name;
+  int8_t score;
+};
+std::vector<Vote> votes;
+const char* const VOTE_EMOJI[6] = {"", "🤮", "👎", "😐", "👍", "🔥"};
+String nameOf(const String& chat);
 int lastReportDay = -1;
 
 // ---------------- ze comrades (subscribers) ----------------
@@ -151,9 +162,11 @@ void sendAll(const String& text, const String& markup) {
   for (auto& c : allChats()) sendNow(c, text, markup);
 }
 
-void sendVoiceNow(const String& chat, const String& url, const String& caption) {
-  const String body = "{\"chat_id\":" + jsonStr(chat) + ",\"voice\":" + jsonStr(url) + ",\"caption\":" +
-                      jsonStr(caption) + ",\"parse_mode\":\"HTML\"}";
+void sendVoiceNow(const String& chat, const String& url, const String& caption, const String& markup = "") {
+  String body = "{\"chat_id\":" + jsonStr(chat) + ",\"voice\":" + jsonStr(url) + ",\"caption\":" +
+                jsonStr(caption) + ",\"parse_mode\":\"HTML\"";
+  if (markup.length()) body += ",\"reply_markup\":" + markup;
+  body += "}";
   if (post("sendVoice", body) == 200) Serial.println("[Telegram 🎙] voice delivered");
 }
 
@@ -424,6 +437,15 @@ void handleCallback(const String& chat, const String& cbId, const String& data) 
       answer = "Rejected";
       sendNow(who, "🚫 Ze owner said no. Do not take it personally, it is only ze structure.", "");
     }
+  } else if (data.startsWith("v:")) {  // "v:<sample>:<1..5>"
+    const int b = data.lastIndexOf(':');
+    const String sample = data.substring(2, b);
+    const int score = constrain(data.substring(b + 1).toInt(), 1, 5);
+    bool found = false;
+    for (auto& v : votes)
+      if (v.sample == sample && v.chat == chat) { v.score = score; found = true; }
+    if (!found && votes.size() < 400) votes.push_back({sample, chat, nameOf(chat), (int8_t)score});
+    answer = String("Noted: ") + VOTE_EMOJI[score] + " - ze voice will be improved, or at least changed";
   } else if (data.startsWith("r:")) {
     const String who = data.substring(2);
     String gone;
@@ -582,7 +604,7 @@ void task(void*) {
     Outgoing* m = nullptr;
     while (xQueueReceive(outQ, &m, 0) == pdTRUE) {
       if (m->voice.length())
-        for (auto& c : allChats()) sendVoiceNow(c, m->voice, m->text);
+        for (auto& c : allChats()) sendVoiceNow(c, m->voice, m->text, m->markup);
       else
         sendAll(m->text, m->markup);
       delete m;
@@ -646,6 +668,37 @@ void onEvent(const RecentEvent& e) {
          labelKeyboard(e.win->id));
   }
 }
+
+namespace {
+String nameOf(const String& chat) {
+  SubsLock l;
+  for (auto& s : subs)
+    if (s.chat == chat) return s.name;
+  return chat;
+}
+}  // namespace
+
+void sendVoiceRated(const String& oggUrl, const String& captionHtml, const String& sample) {
+  if (!configured()) return;
+  String kb = "{\"inline_keyboard\":[[";
+  for (int s = 5; s >= 1; s--)
+    kb += String(s < 5 ? "," : "") + "{\"text\":\"" + VOTE_EMOJI[s] + "\",\"callback_data\":\"v:" + sample + ":" + s + "\"}";
+  kb += "]]}";
+  Outgoing* m = new Outgoing{captionHtml, kb, oggUrl};
+  if (xQueueSend(outQ, &m, 0) != pdTRUE) delete m;
+}
+
+void ratingsToJson(JsonObject o) {
+  JsonArray a = o["votes"].to<JsonArray>();
+  for (auto& v : votes) {
+    JsonObject j = a.add<JsonObject>();
+    j["sample"] = v.sample;
+    j["name"] = v.name;
+    j["score"] = v.score;
+  }
+}
+
+void clearRatings() { votes.clear(); }
 
 void sendVoice(const String& oggUrl, const String& captionHtml) {
   if (!configured()) return;

@@ -379,6 +379,24 @@ void routesSystem() {
     free(s);
     sendJson(r, d);
   });
+  // voice rating rounds (tools/voice_rate.py): send a test voice, read ze emoji votes
+  server.on("/api/voice/test", HTTP_POST, [](AsyncWebServerRequest* r) {
+    if (!authed(r)) return;
+    const String url = param(r, "url"), sample = param(r, "sample");
+    if (!url.startsWith("https://") || !sample.length() || sample.length() > 24) return fail(r, "url + sample needed");
+    telegram::sendVoiceRated(url, param(r, "caption"), sample);
+    ok(r);
+  });
+  server.on("/api/voice/ratings", HTTP_GET, [](AsyncWebServerRequest* r) {
+    JsonDocument d;
+    telegram::ratingsToJson(d.to<JsonObject>());
+    sendJson(r, d);
+  });
+  server.on("/api/voice/ratings/clear", HTTP_POST, [](AsyncWebServerRequest* r) {
+    if (!authed(r)) return;
+    telegram::clearRatings();
+    ok(r);
+  });
   server.on("/api/telegram/newcode", HTTP_POST, [](AsyncWebServerRequest* r) {
     if (!authed(r)) return;
     telegram::newCode();

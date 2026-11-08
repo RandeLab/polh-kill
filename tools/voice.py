@@ -155,19 +155,19 @@ def ffmpeg():
     return imageio_ffmpeg.get_ffmpeg_exe()
 
 
-async def _tts(text, mp3):
+async def _tts(text, mp3, voice=None, rate=None, pitch=None):
     import edge_tts
-    await edge_tts.Communicate(text, VOICE, rate=RATE, pitch=PITCH).save(mp3)
+    await edge_tts.Communicate(text, voice or VOICE, rate=rate or RATE, pitch=pitch or PITCH).save(mp3)
 
 
-def render(text, out, already_respelled=False):
+def render(text, out, already_respelled=False, voice=None, rate=None, pitch=None):
     """Speak text into an OGG/Opus file (Telegram voice message format). Returns ze spoken text."""
     spoken = text if already_respelled else respell(text)
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         mp3 = os.path.join(tmp, "v.mp3")
-        asyncio.run(_tts(spoken, mp3))
+        asyncio.run(_tts(spoken, mp3, voice, rate, pitch))
         subprocess.run([ffmpeg(), "-loglevel", "error", "-y", "-i", mp3, "-ac", "1", "-ar", "48000",
                         "-c:a", "libopus", "-b:a", "24k", "-application", "voip", str(out)], check=True)
     return spoken

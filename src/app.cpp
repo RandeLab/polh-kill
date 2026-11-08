@@ -266,6 +266,8 @@ void wipeDataset() {
   Guard g;
   dataset::wipe();
   for (int i = 0; i < recentN; i++) { recent[i].sampleId = 0; recent[i].storedLabel = -1; }
+  st.snapsTotal = 0;  // fresh dataset, fresh count
+  persistSnapCount();
   rebuildModel();
 }
 

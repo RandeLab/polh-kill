@@ -171,11 +171,16 @@ void wipe() {
     std::vector<String> names;
     for (File e = dir.openNextFile(); e; e = dir.openNextFile()) names.push_back(String("/ds/") + e.name());
     dir.close();
-    for (auto& n : names) dataFS.remove(n);
+    int k = 0;
+    for (auto& n : names) {
+      dataFS.remove(n);
+      if (++k % 8 == 0) vTaskDelay(1);  // thousands of deletes: let ze idle task breathe
+    }
   }
   rawIds.clear();
   indexBytes = 0;
   live = nLabelled = 0;
+  nextId = 1;  // a fresh dataset starts at #1 again
 }
 
 void forEach(const std::function<void(const SampleRec&)>& fn) {
