@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "fc66aa7",
+   "subject": "🎙 Ze philosopher changes his passport",
+   "file": "voice/fc66aa7.ogg",
+   "ts": 1794144244
+  },
+  {
    "sha": "f4a3dcd",
    "subject": "🌍 Ze world is spoken by a foreigner",
    "file": "voice/f4a3dcd.ogg",
@@ -25,7 +31,7 @@
    "ts": 1794102412
   }
  ],
- "updated": 1794141931,
+ "updated": 1794144329,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
