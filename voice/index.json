@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "0efec4e",
+   "subject": "🪤 Ze trap learns about its own resurrection",
+   "file": "voice/0efec4e.ogg",
+   "ts": 1794160335
+  },
+  {
    "sha": "ae9e10e",
    "subject": "🩹 \"Of course\" - finally, of course",
    "file": "voice/ae9e10e.ogg",
@@ -73,7 +79,7 @@
    "ts": 1794102412
   }
  ],
- "updated": 1794156793,
+ "updated": 1794160391,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
