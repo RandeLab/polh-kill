@@ -1,13 +1,19 @@
 {
  "commits": [
   {
+   "sha": "0cfed09",
+   "subject": "🩺 Ze trap was dying every 45 seconds, and it told everybody",
+   "file": "voice/0cfed09.ogg",
+   "ts": 1794137301
+  },
+  {
    "sha": "a9e91c0",
    "subject": "🎙 Ze philosopher learns to speak, finally with ze right sounds",
    "file": "voice/a9e91c0.ogg",
    "ts": 1794102412
   }
  ],
- "updated": 1794102487,
+ "updated": 1794137350,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
