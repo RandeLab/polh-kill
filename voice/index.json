@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "f6d8e6c",
+   "subject": "🗳️ Ze philosopher goes on trial",
+   "file": "voice/f6d8e6c.ogg",
+   "ts": 1794154911
+  },
+  {
    "sha": "740208a",
    "subject": "🧹 Ze trap forgets everything, and learns to be judged",
    "file": "voice/740208a.ogg",
@@ -43,7 +49,7 @@
    "ts": 1794102412
   }
  ],
- "updated": 1794154717,
+ "updated": 1794154948,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
