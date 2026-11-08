@@ -3,7 +3,7 @@
 
 const BUILTIN = ['snap', 'bump', 'footstep', 'mouse', 'other', 'armed-trap'];
 let CLASSES = BUILTIN.slice();  // replaced by /api/classes (built-in + custom)
-let EMOJI = { snap: '💥', bump: '🤜', footstep: '👣', mouse: '🐭', other: '❓' };
+let EMOJI = { snap: '💥', bump: '🤜', footstep: '👣', mouse: '🐭', other: '❓', 'armed-trap': '🪤' };
 let classInfo = [];
 // caught in the bar (soft vs. hard target damps the ring-down differently),
 // then animals around the trap, then household noise
@@ -107,9 +107,15 @@ function prepCanvas(cv) {
   ctx.clearRect(0, 0, w, h);
   return { ctx, w, h };
 }
-function css(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
+// getComputedStyle on every frame is expensive on phones: colours are cached until ze theme changes
+const cssCache = {};
+function css(v) { return cssCache[v] ??= getComputedStyle(document.body).getPropertyValue(v).trim(); }
+function cssReset() { for (const k in cssCache) delete cssCache[k]; }
 
-const live = { v: new Array(500).fill(0), thr: 0, base: 0, dirty: true };
+// ze trap sends 50 points per second in batches every 100 ms. Drawing on a timer made ze plot
+// jump in steps; now it is drawn every animation frame and scrolls smoothly between batches.
+const LIVE_N = 500, LIVE_MS = 20;  // points shown, ms per point
+const live = { v: new Array(LIVE_N).fill(0), thr: 0, base: 0, dirty: true, at: 0, batch: 5 };
 function drawLive(force) {
   if (!live.dirty && !force) return;
   live.dirty = false;
@@ -125,10 +131,21 @@ function drawLive(force) {
   line(live.base, css('--muted'), [2, 4]);
   line(live.thr, css('--red'), [6, 4]);
   ctx.strokeStyle = css('--mag'); ctx.lineWidth = 1.5; ctx.beginPath();
-  live.v.forEach((v, i) => { const x = i / (live.v.length - 1) * w; i ? ctx.lineTo(x, y(v)) : ctx.moveTo(x, y(v)); });
+  // scroll by ze time since ze last batch arrived, at most one batch, so it never runs ahead
+  const shift = Math.min(live.batch, (performance.now() - live.at) / LIVE_MS);
+  const span = LIVE_N - 1 - live.batch, last = live.v.length - 1;
+  let started = false;
+  live.v.forEach((v, i) => {
+    const x = (i - (last - span) - shift) / span * w;
+    if (x < -10) return;  // scrolled out on ze left
+    if (started) ctx.lineTo(x, y(v)); else { ctx.moveTo(x, y(v)); started = true; }
+  });
   ctx.stroke();
 }
-setInterval(() => drawLive(false), 100);
+(function liveLoop() {
+  if (!document.hidden) drawLive(true);
+  requestAnimationFrame(liveLoop);
+})();
 
 function drawWindow(cv, win) {
   cv.classList.remove('hide');
@@ -422,8 +439,9 @@ function bindConfig() {
 let wsOpen = false;
 function onMessage(m) {
   if (m.t === 'live') {
-    live.v.push(...m.v); live.v.splice(0, live.v.length - 500);
+    live.v.push(...m.v); live.v.splice(0, live.v.length - LIVE_N);
     live.thr = m.thr; live.base = m.base; live.dirty = true;
+    live.batch = Math.max(1, Math.min(10, m.v.length)); live.at = performance.now();
   } else if (m.t === 'event') {
     recent = [m.e, ...recent.filter(x => x.id !== m.e.id)].slice(0, 6); renderEvents();
     if (m.e.candidate) showCandidate(m.e);
@@ -443,7 +461,7 @@ function connectWs() {
 // ---------------- wiring ----------------
 function init() {
   if (localGet('polh-theme') === 'randen') document.body.classList.add('theme-randen');
-  $('#btnTheme').onclick = () => { document.body.classList.toggle('theme-randen'); localSet('polh-theme', document.body.classList.contains('theme-randen') ? 'randen' : 'pink'); drawLive(true); };
+  $('#btnTheme').onclick = () => { document.body.classList.toggle('theme-randen'); localSet('polh-theme', document.body.classList.contains('theme-randen') ? 'randen' : 'pink'); cssReset(); drawLive(true); };
   $('#btnLang').onclick = () => { lang = lang === 'de' ? 'en' : 'de'; localSet('polh-lang', lang); applyLang(); renderEvents(); };
   applyLang();
   $('#quote').textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];

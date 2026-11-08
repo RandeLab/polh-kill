@@ -465,6 +465,27 @@ void onWs(AsyncWebSocket*, AsyncWebSocketClient* c, AwsEventType type, void*, ui
 
 }  // namespace
 
+// Live plot in its own task: loop() also stores captures on flash (up to 15 kB each), and while it
+// did, ze live stream stood still for up to 0.9 s. Priority 2 > loop task (1): we send between
+// ze flash operations. Every 100 ms: drain ze detector queue, one WebSocket message.
+void liveTask(void*) {
+  TickType_t wake = xTaskGetTickCount();
+  for (;;) {
+    vTaskDelayUntil(&wake, pdMS_TO_TICKS(100));
+    float v;
+    String msg;
+    int n = 0;
+    while (detector.liveQueue && xQueueReceive(detector.liveQueue, &v, 0) == pdTRUE) {
+      msg += n++ ? "," : "";
+      msg += String(v * 1000.0f, 1);  // mg
+    }
+    if (n && ws.count() && ws.availableForWriteAll()) {
+      ws.textAll("{\"t\":\"live\",\"v\":[" + msg + "],\"thr\":" + String(detector.thresholdG() * 1000, 1) +
+                 ",\"base\":" + String(detector.baselineG() * 1000, 1) + "}");
+    }
+  }
+}
+
 void begin() {
   uiOnFlash = LittleFS.begin(false) && LittleFS.exists("/index.html");
   Serial.printf("[Web] UI on flash: %s\n", uiOnFlash ? "yes" : "no (upload littlefs.bin)");
@@ -494,11 +515,12 @@ void begin() {
   });
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
   server.begin();
+  xTaskCreatePinnedToCore(liveTask, "live", 4096, nullptr, 2, nullptr, 1);
   Serial.println("[Web 🌐] server on port 80");
 }
 
 void loop() {
-  static uint32_t lastLive = 0, lastTick = 0, lastClean = 0;
+  static uint32_t lastTick = 0, lastClean = 0;
   const uint32_t now = millis();
 
   if (rebootAt && now > rebootAt) {
@@ -507,21 +529,6 @@ void loop() {
     ESP.restart();
   }
 
-  // live plot: drain the detector queue every 100 ms
-  if (now - lastLive >= 100) {
-    lastLive = now;
-    float v;
-    String msg;
-    int n = 0;
-    while (detector.liveQueue && xQueueReceive(detector.liveQueue, &v, 0) == pdTRUE) {
-      msg += n++ ? "," : "";
-      msg += String(v * 1000.0f, 1);  // mg
-    }
-    if (n && ws.count()) {
-      ws.textAll("{\"t\":\"live\",\"v\":[" + msg + "],\"thr\":" + String(detector.thresholdG() * 1000, 1) +
-                 ",\"base\":" + String(detector.baselineG() * 1000, 1) + "}");
-    }
-  }
   if (now - lastTick >= 1000) {
     lastTick = now;
     if (ws.count()) notifyLab();

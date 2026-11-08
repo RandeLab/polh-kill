@@ -18,6 +18,7 @@ std::deque<uint8_t> rawBlk;   // flash blocks of each raw window, same order
 size_t rawBlocks = 0;
 uint8_t blocksFor(uint16_t n) { return n ? (sizeof(RawHeader) + n * 6u + 4095) / 4096 : 2; }
 size_t indexBytes = 0;        // size of ze index file
+size_t totalCache = 0;        // partition size, read once at mount
 
 bool isLabel(uint8_t l) { return l != LABEL_NONE && l != LABEL_DELETED; }
 
@@ -82,6 +83,7 @@ bool begin() {
     Serial.println("[Dataset ❌] could not mount the dataset partition");
     return false;
   }
+  totalCache = dataFS.totalBytes();  // once: this walks ze filesystem (see fsTotal)
   if (!dataFS.exists("/ds")) dataFS.mkdir("/ds");
   migrateV1();
   live = nLabelled = 0;
@@ -267,6 +269,9 @@ size_t fsUsed() {
   return blocks * 4096;
 }
 size_t refreshUsage() { return fsUsed(); }
-size_t fsTotal() { return dataFS.totalBytes(); }
+// LittleFS.totalBytes() goes through esp_littlefs_info(), which computes ze USED bytes too, i.e.
+// walks ze whole filesystem - on every status request and every capture. Ze size never changes:
+// read it once at mount.
+size_t fsTotal() { return totalCache; }
 
 }  // namespace dataset

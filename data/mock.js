@@ -4,7 +4,7 @@
 (function () {
   if (!(location.protocol === 'file:' || new URLSearchParams(location.search).has('mock'))) return;
   const CL = ['snap', 'bump', 'footstep', 'mouse', 'other', 'armed-trap'];
-  const EM = { snap: '💥', bump: '🤜', footstep: '👣', mouse: '🐭', other: '❓' };
+  const EM = { snap: '💥', bump: '🤜', footstep: '👣', mouse: '🐭', other: '❓', 'armed-trap': '🪤' };
   const NB = CL.length;
   const subs = [];
   const cfg = { gh_every: 15, k_sigma: 6, min_g: 0.05, snap_g: 1, alert_p: 0.7, unsure_p: 0.35, armed: true, notify_unsure: true, daily: true, voice: true };
