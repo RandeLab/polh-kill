@@ -4,7 +4,9 @@
     python tools/make_interview.py
 
 The philosopher is a Slovenian neural voice reading English (sl-SI-RokNeural),
-the interviewer an English one. Uses Microsoft's online Edge TTS service.
+the interviewer an English one. Ze philosopher's lines go through voice.respell(), so ze few
+words he gets totally wrong ("waiting", "world", "of course" ...) use ze spellings tuned by ear;
+ze transcript keeps ze normal text. Uses Microsoft's online Edge TTS service.
 """
 import asyncio
 import json
@@ -12,13 +14,15 @@ from pathlib import Path
 
 import edge_tts
 
+import voice as voice_mod  # ze same word fixes as ze Telegram voice messages (FIX / FIX_PHRASES)
+
 HOST = ("en-GB-SoniaNeural", "+0%", "+0Hz")
 PHIL = ("sl-SI-RokNeural", "+6%", "-4Hz")
 
 SCRIPT = [
     (HOST, "Welcome. Today we talk to the philosopher behind polh-kill, a mousetrap that learns. So, what is this thing?"),
     (PHIL, "Look, here is the paradox. A mousetrap is the most honest machine in the world. It does one thing. "
-           "Clack. And it is over. But nobody is there to hear it! So the trap waits, the mouse waits, the cheese waits. "
+           "Clack. And it is over. But nobody is there to hear it! So the trap is waiting, the mouse is waiting, the cheese is waiting. "
            "And you, you do not know. This is unbearable, no?"),
     (HOST, "But why does a mousetrap need machine learning?"),
     (PHIL, "Because a snap is not simply a snap! The trap feels everything. Footsteps, ze washing machine, "
@@ -43,7 +47,8 @@ async def main():
     parts = []
     for i, ((voice, rate, pitch), text) in enumerate(SCRIPT):
         tmp = out.with_name(f"_part{i}.mp3")
-        await edge_tts.Communicate(text, voice, rate=rate, pitch=pitch).save(str(tmp))
+        spoken = voice_mod.respell(text) if voice == PHIL[0] else text
+        await edge_tts.Communicate(spoken, voice, rate=rate, pitch=pitch).save(str(tmp))
         parts.append(tmp)
     # all parts share the same MP3 format (24 kHz mono 48 kbit/s CBR), so plain concatenation is
     # a valid stream - and the byte count gives the exact time where each part starts
