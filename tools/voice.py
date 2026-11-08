@@ -157,7 +157,14 @@ def ffmpeg():
 
 async def _tts(text, mp3, voice=None, rate=None, pitch=None):
     import edge_tts
-    await edge_tts.Communicate(text, voice or VOICE, rate=rate or RATE, pitch=pitch or PITCH).save(mp3)
+    for attempt in range(4):  # ze service sometimes answers with silence: ask again
+        try:
+            await edge_tts.Communicate(text, voice or VOICE, rate=rate or RATE, pitch=pitch or PITCH).save(mp3)
+            return
+        except edge_tts.exceptions.NoAudioReceived:
+            if attempt == 3:
+                raise
+            await asyncio.sleep(2 + 2 * attempt)
 
 
 def render(text, out, already_respelled=False, voice=None, rate=None, pitch=None):

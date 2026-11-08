@@ -7,6 +7,7 @@
 round.json:
     {"name": "r1", "text": "...commit message...",
      "variants": {"a": {"voice": "hr-HR-SreckoNeural", "pitch": "-10Hz", "rate": "+0%"}, ...}}
+    optional per variant: "respell": true (Slovenian letters), "the": true (ze -> the)
 
 Between render and send, ze checkout must be pushed and GitHub Pages must serve ze files
 (Telegram fetches them by URL). Score: 🔥 5, 👍 4, 😐 3, 👎 2, 🤮 1.
@@ -32,7 +33,12 @@ def load(path):
 def render(rnd, site):
     for key, v in rnd["variants"].items():
         out = Path(site) / "voice" / "tests" / f"{rnd['name']}_{key}.ogg"
-        voice.render(rnd["text"], out, voice=v.get("voice"), rate=v.get("rate"), pitch=v.get("pitch"))
+        text = rnd["text"]
+        if v.get("the"):  # test whether ze "ze" itself is ze problem
+            text = text.replace("Ze ", "The ").replace(" ze ", " the ")
+        voice.RESPELL = bool(v.get("respell"))  # Slovenian letters, made for sl-SI-RokNeural
+        voice.render(text, out, voice=v.get("voice"), rate=v.get("rate"), pitch=v.get("pitch"))
+        voice.RESPELL = False
         print(f"🎙 {out.name}: {v}")
 
 
