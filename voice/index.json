@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "f4a3dcd",
+   "subject": "🌍 Ze world is spoken by a foreigner",
+   "file": "voice/f4a3dcd.ogg",
+   "ts": 1794141870
+  },
+  {
    "sha": "ad33b91",
    "subject": "👂 Ze philosopher learns to listen to his own mouth",
    "file": "voice/ad33b91.ogg",
@@ -19,7 +25,7 @@
    "ts": 1794102412
   }
  ],
- "updated": 1794141632,
+ "updated": 1794141931,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
