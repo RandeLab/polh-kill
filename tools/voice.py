@@ -20,6 +20,9 @@ import tempfile
 from pathlib import Path
 
 VOICE, RATE, PITCH = "sl-SI-RokNeural", "+4%", "-4Hz"
+# words even ze best respelling cannot save are marked "@word" in ze LEXICON: they are spoken by an
+# English voice and spliced in. A little foreign body in ze sentence - which is very fitting.
+EN_VOICE, EN_RATE, EN_PITCH = "en-GB-RyanNeural", "+0%", "-6Hz"
 
 # words ze dictionary does not know, or which ze philosopher says his own way
 LEXICON = {
@@ -30,7 +33,7 @@ LEXICON = {
     "wifi": "uaj faj", "api": "ej pi aj", "ai": "ej aj", "ok": "okej", "mousetrap": "maustrep",
     "rls": "ar el es", "nvs": "en vi es", "mp3": "em pi tri", "json": "džej son", "csv": "si es vi",
     # tuned by ear (2026-11-08): letter-perfect respelling is not always what sounds right
-    "waiting": "uejjting", "trap": "trap", "traps": "traps", "world": "vöreld", "published": "published",
+    "waiting": "uejjting", "trap": "trap", "traps": "traps", "world": "@world", "published": "published",
     "eight": "ejt", "ideology": "ajdi-ologi", "philosopher": "philosopher", "wanted": "vonted",
     "model": "modell", "rewritten": "rewritten", "nothing": "noting",
 }
@@ -139,9 +142,19 @@ def ffmpeg():
     return imageio_ffmpeg.get_ffmpeg_exe()
 
 
-async def _tts(text, mp3):
+async def _tts(text, mp3, voice=VOICE, rate=RATE, pitch=PITCH):
     import edge_tts
-    await edge_tts.Communicate(text, VOICE, rate=RATE, pitch=PITCH).save(mp3)
+    await edge_tts.Communicate(text, voice, rate=rate, pitch=pitch).save(mp3)
+
+
+def segments(spoken):
+    """'Ze @world is big' -> [(sl, 'Ze'), (en, 'world'), (sl, 'is big')]"""
+    out = []
+    for i, part in enumerate(re.split(r"@([A-Za-z']+)", spoken)):
+        part = part.strip()
+        if part and re.search(r"\w", part):
+            out.append(("en" if i % 2 else "sl", part))
+    return out
 
 
 def render(text, out, already_respelled=False):
@@ -150,10 +163,22 @@ def render(text, out, already_respelled=False):
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
-        mp3 = os.path.join(tmp, "v.mp3")
-        asyncio.run(_tts(spoken, mp3))
-        subprocess.run([ffmpeg(), "-loglevel", "error", "-y", "-i", mp3, "-ac", "1", "-ar", "48000",
-                        "-c:a", "libopus", "-b:a", "24k", "-application", "voip", str(out)], check=True)
+        inputs, filters = [], []
+        for k, (lang, part) in enumerate(segments(spoken)):
+            mp3 = os.path.join(tmp, f"s{k}.mp3")
+            if lang == "en":
+                asyncio.run(_tts(part, mp3, EN_VOICE, EN_RATE, EN_PITCH))
+            else:
+                asyncio.run(_tts(part, mp3))
+            inputs += ["-i", mp3]
+            # trim ze TTS padding at both ends so ze splice does not stutter, keep a short breath
+            trim = "silenceremove=start_periods=1:start_threshold=-45dB,areverse,"                    "silenceremove=start_periods=1:start_threshold=-45dB,areverse,"
+            filters.append(f"[{k}:a]aresample=48000,aformat=channel_layouts=mono,{trim}apad=pad_dur=0.06[a{k}]")
+        n = len(filters)
+        graph = ";".join(filters) + ";" + "".join(f"[a{k}]" for k in range(n)) + f"concat=n={n}:v=0:a=1[out]"
+        subprocess.run([ffmpeg(), "-loglevel", "error", "-y", *inputs, "-filter_complex", graph, "-map", "[out]",
+                        "-ac", "1", "-ar", "48000", "-c:a", "libopus", "-b:a", "24k", "-application", "voip",
+                        str(out)], check=True)
     return spoken
 
 
