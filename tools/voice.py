@@ -28,11 +28,11 @@ RESPELL = False  # True: every word in Slovenian letters from ze CMU dictionary
 
 # ze few words ze Slovenian voice gets totally wrong in plain English, written so it says them right
 FIX = {
-    "waiting": "uejjting", "world": "uörrld", "wants": "uonts",
+    "waiting": "uejjting", "world": "uörrld", "wants": "uonc",
 }
 # ze same for phrases (applied first, case-insensitive)
 FIX_PHRASES = {
-    "open source": "oupen sors",
+    "open source": "oupen sors", "of course": "ofkors",
 }
 
 # plain mode: abbreviations spelled out, otherwise ze voice reads them as Slovenian words
