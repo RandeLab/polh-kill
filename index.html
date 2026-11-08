@@ -21,6 +21,10 @@
   .tag.lab { border-color: var(--green); color: var(--green); }
   .featgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 2px 14px; font-size: .82rem; margin-top: 8px; }
   .featgrid span { display: flex; justify-content: space-between; border-bottom: 1px solid var(--grid); }
+  .roadmap { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .roadmap > div { border: 1px solid var(--grid); border-radius: var(--radius); padding: 10px 14px; }
+  .roadmap h3 { margin: 0 0 6px; color: var(--cyan); font-size: 1rem; }
+  .roadmap p { margin: 0; font-size: .9rem; }
 </style>
 </head>
 <body>
@@ -73,6 +77,29 @@
     <table id="classTable"></table>
     <p id="looSummary" class="mono"></p>
     <table class="cm" id="cmTable"></table>
+  </div>
+
+  <div class="panel" id="next">
+    <h2>What is to be done? <small>ze roadmap, which is of course also an ideology</small></h2>
+    <p class="muted">Ze trap feels, ze trap learns, ze trap publishes. But a trap that only feels vibration is,
+      how you say, a philosopher without ears and without eyes. So:</p>
+    <div class="grid roadmap">
+      <div><h3>🎤 Ze ear</h3><p>A small I2S microphone records every event. Maximum 5 seconds, maximum 5 kB –
+        so ze trap must <em>decide</em> which part of ze sound is worth keeping: ze clack, ze silence after, or ze scratching before.
+        Opus at 8 kbit/s. Every choice is a political choice.</p></div>
+      <div><h3>📟 Ze face</h3><p>An OLED display: ze last event with its emoji, a live vibration bar, snaps today,
+        a countdown in ze learning lab, a QR code to ze web interface – and ze quote of ze day, naturally.</p></div>
+      <div><h3>📸 Ze eye</h3><p>A camera takes a picture half a second after ze clack – before that, everything is still shaking.
+        Ze image goes to Telegram and here. Finally we see what we only felt.</p></div>
+      <div><h3>🔌 Ze second port</h3><p>Ze ESP32-S3 has a second USB-C with real USB-OTG. A USB webcam, a USB microphone,
+        a USB stick for endless raw data? Ze port is there. It waits. Like ze trap.</p></div>
+      <div><h3>🧍 Ze human</h3><p>A presence sensor (mmWave radar) knows when a human is near. Then a bump is just a bump,
+        and nobody gets an alarm while setting ze trap with their own fingers.</p></div>
+      <div><h3>📡 Ze invisible</h3><p>Can ze WiFi chip itself feel a human, only from how ze body disturbs ze radio waves?
+        Espressif says yes (Wi-Fi CSI, <a href="https://components.espressif.com/components/espressif/esp_wifi_sensing/versions/0.1.1~3/readme">esp_wifi_sensing</a>),
+        ze <a href="https://standards.ieee.org/beyond-standards/ieee-802-11bf-aims-to-enable-a-new-application-of-wlan-technology-wlan-sensing">IEEE 802.11bf</a> standard says yes.
+        For a mouse? Smaller than ze wavelength of 12.5 cm. Here physics ends and philosophy begins.</p></div>
+    </div>
   </div>
 </main>
 <footer>
