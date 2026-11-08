@@ -1,1 +1,1 @@
-{"device":"polh-kill","version":"0.2.0","generated":1794143862,"uptime_ms":438497,"sensor":"MPU-6500","noise_floor_mg":2.931567,"threshold_mg":50,"events_since_boot":68,"snaps_total":193,"captures":1077,"labelled":29,"waveforms_on_device":500,"armed":true}
+{"device":"polh-kill","version":"0.2.0","generated":1794144597,"uptime_ms":699482,"sensor":"MPU-6500","noise_floor_mg":2.95661,"threshold_mg":50,"events_since_boot":37,"snaps_total":197,"captures":1117,"labelled":29,"waveforms_on_device":500,"armed":true}
