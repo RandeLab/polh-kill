@@ -4,7 +4,8 @@
     python tools/voice.py "Ze trap is waiting." out.ogg      one line
     python tools/voice.py --show "Ze trap is waiting."      only print ze respelled text
 
-Why respelling: ze Slovenian neural voice (sl-SI-RokNeural) reads every word with Slovenian
+Today (RESPELL = False): a Croatian voice reads plain English, which has ze best accent.
+Before, why respelling: ze Slovenian neural voice (sl-SI-RokNeural) reads every word with Slovenian
 spelling rules - "waiting" becomes "va-i-ting", which is not an accent any more, it is a different
 word. So every English word is looked up in ze CMU pronouncing dictionary and written down again in
 Slovenian letters ("waiting" -> "uejting", "the" -> "ze"). Ze voice then says ze right English
@@ -19,7 +20,18 @@ import sys
 import tempfile
 from pathlib import Path
 
-VOICE, RATE, PITCH = "sl-SI-RokNeural", "+4%", "-4Hz"
+# 2026-11-08, chosen by ear: ze Croatian voice reading plain English has ze best accent of all
+# Slavic voices, pitched down a little. Ze Slovenian voice + respelling below is kept, switched off.
+VOICE, RATE, PITCH = "hr-HR-SreckoNeural", "+0%", "-10Hz"
+RESPELL = False  # True: Slovenian letters from ze CMU dictionary (made for sl-SI-RokNeural)
+
+# plain mode: abbreviations spelled out, otherwise ze voice reads them as Croatian words
+PLAIN = {
+    "esp32-s3": "E S P thirty two S three", "esp32": "E S P thirty two", "esp": "E S P", "github": "git hub",
+    "gpl": "G P L", "ui": "U I", "ota": "O T A", "led": "L E D", "rgb": "R G B", "nvs": "N V S",
+    "csv": "C S V", "json": "jason", "api": "A P I", "mp3": "M P three", "ogg": "ogg", "wifi": "wifi",
+    "tls": "T L S", "ap": "A P", "rls": "R L S", "polh-kill": "polh kill",
+}
 
 # words ze dictionary does not know, or which ze philosopher says his own way
 LEXICON = {
@@ -128,6 +140,10 @@ def clean(text):
 
 
 def respell(text):
+    if not RESPELL:  # abbreviations and versions first, before clean() turns digits into words
+        text = re.sub(r"\bv(\d+)\.(\d+)\.(\d+)\b", r"version \1 point \2 point \3", text)
+        text = re.sub(r"[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*", lambda m: PLAIN.get(m.group().lower(), m.group()), text)
+        return clean(text)
     return re.sub(r"[A-Za-z][A-Za-z'\-]*[A-Za-z0-9]|[A-Za-z]", lambda m: respell_word(m.group()), clean(text))
 
 

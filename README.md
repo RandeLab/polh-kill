@@ -116,8 +116,8 @@ Up to 10 people can listen to ze same bot:
 GitHub Pages, ze ESP finds it there and sends it as a Telegram voice message to all comrades. After
 its own data pushes ze ESP sends one of ze fixed lines in [tools/voice_lines.json](tools/voice_lines.json)
 (first push after boot, every snap, otherwise at most every 6 h). Ze bot token never leaves ze ESP.
-Ze English is respelled in Slovenian letters from ze CMU dictionary ("waiting" → "uejting"), so ze
-Slovenian voice says ze right sounds – with ze accent, naturally. Switch off in ze web UI (🎙).
+Ze voice is a Croatian one (hr-HR-SreckoNeural, a little deeper) reading plain English: after many
+rounds of tuning by ear, this was ze best accent. Switch off in ze web UI (🎙).
 
 ### 🌈 LED
 
@@ -233,9 +233,8 @@ Eine Telegram-Gruppe geht auch: Bot in die Gruppe holen, dort `/start`.
 **🎙 Sprachnachrichten:** Jeden Commit auf `main` liest der Philosoph vor. Eine GitHub Action macht
 daraus eine OGG-Datei auf GitHub Pages, der ESP holt sie dort und schickt sie allen als
 Telegram-Sprachnachricht. Nach eigenen Daten-Pushes schickt er feste Sätze aus `tools/voice_lines.json`
-(erster Push nach dem Start, jeder Schnapper, sonst höchstens alle 6 h). Das Englisch wird aus dem
-CMU-Wörterbuch in slowenische Buchstaben umgeschrieben («waiting» → «uejting») – richtige Laute,
-Akzent bleibt. Abschaltbar in der Weboberfläche.
+(erster Push nach dem Start, jeder Schnapper, sonst höchstens alle 6 h). Es spricht eine kroatische Stimme
+(hr-HR-SreckoNeural, etwas tiefer) normales Englisch – nach vielen Hörrunden der beste Akzent. Abschaltbar in der Weboberfläche.
 
 ### 🔒 Geheimnisse
 
