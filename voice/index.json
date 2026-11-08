@@ -1,0 +1,22 @@
+{
+ "commits": [
+  {
+   "sha": "a9e91c0",
+   "subject": "🎙 Ze philosopher learns to speak, finally with ze right sounds",
+   "file": "voice/a9e91c0.ogg",
+   "ts": 1794102412
+  }
+ ],
+ "updated": 1794102487,
+ "esp": {
+  "hello": "voice/esp/hello.ogg",
+  "snap_0": "voice/esp/snap_0.ogg",
+  "snap_1": "voice/esp/snap_1.ogg",
+  "snap_2": "voice/esp/snap_2.ogg",
+  "cap_0": "voice/esp/cap_0.ogg",
+  "cap_1": "voice/esp/cap_1.ogg",
+  "cap_2": "voice/esp/cap_2.ogg",
+  "cap_3": "voice/esp/cap_3.ogg",
+  "labels": "voice/esp/labels.ogg"
+ }
+}
