@@ -30,7 +30,7 @@ const DE = {
   kSigma: 'Auslösung: Rauschen + k·σ', minG: 'minimale Auslösung (g)', snapG: 'Schnapp-Spitze bei leerem Modell (g)',
   alertP: 'Alarm ab Schnapp-Wahrscheinlichkeit', unsureP: 'nach Label fragen ab', armedLbl: 'scharf (Telegram-Alarme)',
   notifyUnsure: 'bei Unsicherheit auf Telegram fragen', daily: 'Tagebuch jeden Tag um 20:00', tgTest: 'Testnachricht senden',
-  tgUnpair: 'Chat entkoppeln', sysTitle: 'System', wifiSetup: '📶 WLAN / Bot einrichten', ota: '⚡ OTA-Update',
+  tgUnpair: 'alle entkoppeln', tgCode: 'neuer Beitrittscode', sysTitle: 'System', wifiSetup: '📶 WLAN / Bot einrichten', ota: '⚡ OTA-Update',
   portal: 'Hotspot öffnen', reboot: 'neu starten', noEvents: 'Noch nichts passiert. Absolut nichts.',
   waiting: 'Warte auf', doItNow: 'jetzt machen!', kept: 'gespeichert', discarded: 'verworfen', saved: 'gespeichert',
   interview: '▶ Interview anhören', ghSub: 'jede Aufnahme, veröffentlicht', ghEvery: 'pushen alle (Minuten)', ghPush: 'jetzt pushen', ghOpen: 'Seite öffnen', newClass: '＋ neue Klasse', addClass: 'Klasse anlegen',
@@ -152,6 +152,39 @@ function drawWindow(cv, win) {
 
 // ---------------- status ----------------
 let status = null;
+// ze comrades of ze trap: owner first, the others can be removed here or with /users in Telegram
+function renderTgUsers(tg) {
+  const box = $('#tgUsers');
+  const users = tg.users || [];
+  const sig = JSON.stringify(users) + tg.join_code + tg.bot;
+  if (box.dataset.sig === sig) return;  // status refreshes often, do not rebuild ze buttons each time
+  box.dataset.sig = sig;
+  box.innerHTML = '';
+  for (const u of users) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const name = document.createElement('span');
+    name.textContent = (u.owner ? '👑 ' : '• ') + u.name + (u.owner ? ' (owner)' : '');
+    row.append(name);
+    if (!u.owner) {
+      const b = document.createElement('button');
+      b.className = 'small';
+      b.textContent = '🚪 remove';
+      b.onclick = async () => {
+        if (!confirm(`Remove ${u.name} from ze trap?`)) return;
+        try { await api.post('/api/telegram/remove', { chat: u.chat }); loadStatus(); } catch (e) { toast('❌ ' + e.message); }
+      };
+      row.append(b);
+    }
+    box.append(row);
+  }
+  const link = tg.bot && tg.join_code ? `https://t.me/${tg.bot}?start=${tg.join_code}` : '';
+  $('#tgJoin').innerHTML = !tg.configured || !tg.join_code ? '' :
+    `🔑 Join code <code>${tg.join_code}</code>: a new comrade sends <code>/start ${tg.join_code}</code> to ze bot` +
+    (link ? ` or opens <a href="${link}" target="_blank" rel="noopener">${link}</a>` : '') +
+    '. Without ze code they knock, and ze owner gets a ✅/🚫 button.';
+}
+
 async function loadStatus() {
   try {
     status = await api.get('/api/status');
@@ -178,7 +211,9 @@ async function loadStatus() {
   $('#labSim').classList.toggle('hide', !s.sensor.simulated);
   const tg = s.telegram;
   $('#tgInfo').textContent = !tg.configured ? 'No bot token yet → WiFi / bot setup.' :
-    `Bot @${tg.bot || '?'} · ${tg.paired ? 'paired' : 'not paired: send /start to the bot'}${tg.last_error ? ' · last error: ' + tg.last_error : ''}`;
+    `Bot @${tg.bot || '?'} · ${tg.paired ? (tg.users || []).length + '/' + (tg.max_users || 10) + ' comrades' : 'not paired: send /start to the bot, ze first one is ze owner'}` +
+    `${tg.pending ? ' · ' + tg.pending + ' knocking (approve in Telegram)' : ''}${tg.last_error ? ' · last error: ' + tg.last_error : ''}`;
+  renderTgUsers(tg);
   const gh = s.github || {};
   $('#lnkPages').href = gh.pages_url || '#';
   $('#ghInfo').textContent = !gh.configured ? 'No GitHub token yet → WiFi / bot setup (fine-grained token, Contents read+write on ' + (gh.repo || 'the repo') + ').' :
@@ -441,7 +476,8 @@ function init() {
   $('#btnWipe').onclick = async () => { if (confirm(t('confirmWipe', 'Really wipe the whole dataset?'))) { await api.post('/api/model/wipe'); loadDataset(); loadStatus(); } };
   $('#btnGhPush').onclick = async () => { try { await api.post('/api/github/push'); toast('🐙 pushing…'); } catch (e) { toast('❌ ' + e.message); } };
   $('#btnTgTest').onclick = async () => { try { await api.post('/api/telegram/test'); toast('✈️ sent'); } catch (e) { toast('❌ ' + e.message); } };
-  $('#btnTgUnpair').onclick = async () => { await api.post('/api/telegram/unpair'); loadStatus(); };
+  $('#btnTgUnpair').onclick = async () => { if (!confirm('Unpair everybody? Ze next /start becomes ze new owner.')) return; await api.post('/api/telegram/unpair'); loadStatus(); };
+  $('#btnTgCode').onclick = async () => { try { await api.post('/api/telegram/newcode'); toast('🔑 new code, ze old one is dead'); loadStatus(); } catch (e) { toast('❌ ' + e.message); } };
   $('#btnPortal').onclick = async () => { if (confirm(t('confirmPortal', 'Open the hotspot?'))) await api.post('/api/portal'); };
   $('#btnReboot').onclick = async () => { if (confirm(t('confirmReboot', 'Reboot?'))) await api.post('/api/reboot'); };
   bindConfig();

@@ -37,7 +37,7 @@ String render(const char* tpl) {
   s.replace("%STYLE%", PAGE_STYLE);
   s.replace("%VERSION%", POLH_VERSION);
   s.replace("%SSID%", htmlEsc(settings.wifiSsid));
-  s.replace("%CHAT%", htmlEsc(settings.tgChat));
+  s.replace("%CHAT%", settings.tgChat.length() ? "already paired, manage comrades with /users or in ze web UI" : "after saving: send /start to your bot, ze first one is ze owner");
   s.replace("%NAME%", htmlEsc(settings.deviceName));
   s.replace("%PASS_HINT%", settings.wifiPass.length() ? "(saved, leave empty to keep)" : "");
   s.replace("%TOKEN_HINT%", settings.tgToken.length() ? "(saved, leave empty to keep)" : "123456:ABC-…");
@@ -311,7 +311,6 @@ void routesSystem() {
     if (pass.length() || ssid != settings.wifiSsid) settings.wifiPass = pass;
     settings.wifiSsid = ssid;
     if (token.length()) settings.tgToken = token;
-    settings.tgChat = param(r, "chat");
     const String name = param(r, "name");
     if (name.length()) settings.deviceName = name;
     if (admin.length()) settings.adminPass = admin;
@@ -342,8 +341,17 @@ void routesSystem() {
   });
   server.on("/api/telegram/unpair", HTTP_POST, [](AsyncWebServerRequest* r) {
     if (!authed(r)) return;
-    settings.tgChat = "";
-    settings.save();
+    telegram::unpairAll();
+    ok(r);
+  });
+  server.on("/api/telegram/remove", HTTP_POST, [](AsyncWebServerRequest* r) {
+    if (!authed(r)) return;
+    if (!telegram::removeUser(param(r, "chat"))) return fail(r, "no such comrade");
+    ok(r);
+  });
+  server.on("/api/telegram/newcode", HTTP_POST, [](AsyncWebServerRequest* r) {
+    if (!authed(r)) return;
+    telegram::newCode();
     ok(r);
   });
   server.on("/api/portal", HTTP_POST, [](AsyncWebServerRequest* r) {

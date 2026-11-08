@@ -26,7 +26,7 @@ static const char PAGE_SETUP[] PROGMEM = R"html(<!doctype html><html lang="en"><
 <div class="nets" id="nets"><small>scanning…</small></div>
 <label for="pass">WiFi password</label><input id="pass" name="pass" type="password" placeholder="%PASS_HINT%">
 <label for="token">Telegram bot token (from @BotFather)</label><input id="token" name="token" placeholder="%TOKEN_HINT%" autocomplete="off">
-<label for="chat">Telegram chat id (optional)</label><input id="chat" name="chat" value="%CHAT%" placeholder="empty = first /start pairs">
+<p class="hint">👥 %CHAT%</p>
 <label for="name">Device name</label><input id="name" name="name" value="%NAME%">
 <label for="admin">Admin password (optional, protects OTA + reset)</label><input id="admin" name="admin" type="password" placeholder="%ADMIN_HINT%">
 <label for="ghtoken">GitHub token (optional, publishes captures to GitHub Pages)</label><input id="ghtoken" name="gh_token" type="password" placeholder="%GH_HINT%" autocomplete="off">

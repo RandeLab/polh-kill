@@ -2,6 +2,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <time.h>
+#include <vector>
 #include "features.h"
 #include "net.h"
 #include "settings.h"
@@ -18,6 +19,78 @@ int64_t lastUpdateId = 0;
 String bot, lastErr;
 bool bootSent = false;
 int lastReportDay = -1;
+
+// ---------------- ze comrades (subscribers) ----------------
+// One bot, many humans. subs[0] is ze owner: ze first one who said /start.
+// Everybody else gets in by ze owner's approval button or with ze join code.
+struct Sub {
+  String chat, name;
+};
+std::vector<Sub> subs, pending;
+SemaphoreHandle_t subsMx = nullptr;
+struct SubsLock {
+  SubsLock() { xSemaphoreTakeRecursive(subsMx, portMAX_DELAY); }
+  ~SubsLock() { xSemaphoreGiveRecursive(subsMx); }
+};
+
+void loadSubs() {
+  SubsLock l;
+  subs.clear();
+  String ids = settings.tgChat, names = settings.tgNames;
+  while (ids.length()) {
+    const int c = ids.indexOf(',');
+    String id = c < 0 ? ids : ids.substring(0, c);
+    ids = c < 0 ? String() : ids.substring(c + 1);
+    const int n = names.indexOf('\n');
+    String name = n < 0 ? names : names.substring(0, n);
+    names = n < 0 ? String() : names.substring(n + 1);
+    id.trim();
+    if (id.length()) subs.push_back({id, name.length() ? name : (subs.empty() ? String("owner") : id)});
+  }
+}
+
+void saveSubs() {
+  SubsLock l;
+  String ids, names;
+  for (size_t i = 0; i < subs.size(); i++) {
+    if (i) {
+      ids += ",";
+      names += "\n";
+    }
+    ids += subs[i].chat;
+    names += subs[i].name;
+  }
+  settings.tgChat = ids;
+  settings.tgNames = names;
+  settings.save();
+}
+
+int findSub(const String& chat) {
+  SubsLock l;
+  for (size_t i = 0; i < subs.size(); i++)
+    if (subs[i].chat == chat) return i;
+  return -1;
+}
+bool isOwner(const String& chat) {
+  SubsLock l;
+  return !subs.empty() && subs[0].chat == chat;
+}
+String ownerChat() {
+  SubsLock l;
+  return subs.empty() ? String() : subs[0].chat;
+}
+std::vector<String> allChats() {
+  SubsLock l;
+  std::vector<String> v;
+  for (auto& s : subs) v.push_back(s.chat);
+  return v;
+}
+
+void ensureCode() {
+  if (settings.tgCode.length() == 6) return;
+  settings.tgCode = String(100000 + esp_random() % 900000);
+  settings.save();
+}
 
 String esc(String s) {
   s.replace("&", "&amp;");
@@ -69,6 +142,24 @@ void sendNow(const String& chat, const String& text, const String& markup) {
   if (markup.length()) body += ",\"reply_markup\":" + markup;
   body += "}";
   if (post("sendMessage", body) == 200) Serial.println("[Telegram ✈️] message delivered");
+}
+
+void sendAll(const String& text, const String& markup) {
+  for (auto& c : allChats()) sendNow(c, text, markup);
+}
+
+bool addSub(const String& chat, const String& name) {
+  SubsLock l;
+  if (findSub(chat) >= 0) return true;
+  if ((int)subs.size() >= MAX_TG_USERS) return false;
+  subs.push_back({chat, name});
+  for (size_t i = 0; i < pending.size(); i++)
+    if (pending[i].chat == chat) {
+      pending.erase(pending.begin() + i);
+      break;
+    }
+  saveSubs();
+  return true;
 }
 
 String labelKeyboard(uint32_t eventId) {
@@ -142,7 +233,10 @@ String helpText() {
          "/disarm - be quiet (e.g. while resetting ze trap)\n"
          "/stats - numbers, pure numbers\n"
          "/lab - link to ze learning lab\n"
-         "/ping - are you alive?";
+         "/ping - are you alive?\n"
+         "/users - who listens to ze trap\n"
+         "/code - ze join code for new comrades (owner)\n"
+         "/leave - stop listening";
 }
 
 String bootText() {
@@ -186,6 +280,48 @@ void handleCommand(const String& chat, String cmd) {
     sendNow(chat, t, "");
   } else if (cmd.startsWith("/lab")) {
     sendNow(chat, "🧪 Ze learning lab: " + webLink() + "#lab\n(only from inside ze same WiFi)", "");
+  } else if (cmd.startsWith("/users")) {
+    String t = "👥 <b>Ze comrades of ze trap</b>\n";
+    String kb = "{\"inline_keyboard\":[";
+    bool any = false;
+    {
+      SubsLock l;
+      const bool owner = isOwner(chat);
+      for (size_t i = 0; i < subs.size(); i++) {
+        t += String(i == 0 ? "👑 " : "• ") + esc(subs[i].name) + (subs[i].chat == chat ? " (you)" : "") + "\n";
+        if (i > 0 && owner) {
+          if (any) kb += ",";
+          kb += "[{\"text\":" + jsonStr("🚪 remove " + subs[i].name.substring(0, 24)) +
+                ",\"callback_data\":\"r:" + subs[i].chat + "\"}]";
+          any = true;
+        }
+      }
+      if (!pending.empty()) t += "⏳ knocking: " + String(pending.size()) + "\n";
+    }
+    t += String(MAX_TG_USERS) + " places in total. Like a commune, but with a waiting list.";
+    sendNow(chat, t, any ? kb + "]}" : String());
+  } else if (cmd.startsWith("/code")) {
+    if (!isOwner(chat)) {
+      sendNow(chat, "🔒 Only ze owner knows ze code. Hierarchy, my friend, is also an ideology.", "");
+    } else {
+      ensureCode();
+      const String link =
+          bot.length() ? "\nOr simply send them this link:\nhttps://t.me/" + bot + "?start=" + settings.tgCode : String();
+      sendNow(chat, "🔑 Ze join code is <code>" + settings.tgCode + "</code>.\nA new comrade sends <code>/start " +
+                        settings.tgCode + "</code> to ze bot and is in, without asking you." + link, "");
+    }
+  } else if (cmd.startsWith("/leave")) {
+    if (isOwner(chat)) {
+      sendNow(chat, "👑 Ze owner cannot leave. Unpair in ze web UI, if you really must destroy ze commune.", "");
+    } else {
+      {
+        SubsLock l;
+        const int i = findSub(chat);
+        if (i > 0) subs.erase(subs.begin() + i);
+        saveSubs();
+      }
+      sendNow(chat, "👋 You are free now. Which is, of course, ze most terrible thing. /start to come back.", "");
+    }
   } else if (cmd.startsWith("/ping")) {
     sendNow(chat, "🏓 <b>Pong!</b> I am here. Uptime " + app::uptimeText(millis()) + ".", "");
   } else {
@@ -195,6 +331,53 @@ void handleCommand(const String& chat, String cmd) {
 
 void handleCallback(const String& chat, const String& cbId, const String& data) {
   String answer = "?";
+  // ze owner decides about strangers: "j:<chat>:1|0" approve/deny, "r:<chat>" remove
+  if ((data.startsWith("j:") || data.startsWith("r:")) && !isOwner(chat)) {
+    answer = "Only ze owner decides";
+  } else if (data.startsWith("j:")) {
+    const int b = data.lastIndexOf(':');
+    const String who = data.substring(2, b);
+    const bool yes = data.substring(b + 1) == "1";
+    String name = who;
+    {
+      SubsLock l;
+      for (size_t i = 0; i < pending.size(); i++)
+        if (pending[i].chat == who) {
+          name = pending[i].name;
+          if (!yes) pending.erase(pending.begin() + i);
+          break;
+        }
+    }
+    if (yes) {
+      if (addSub(who, name)) {
+        answer = "Let in ✅";
+        sendNow(who, "🤝 <b>Welcome, comrade.</b> Ze owner has let you in. From now on you get every snap. /help", "");
+      } else {
+        answer = "Full! " + String(MAX_TG_USERS) + " places";
+      }
+    } else {
+      answer = "Rejected";
+      sendNow(who, "🚫 Ze owner said no. Do not take it personally, it is only ze structure.", "");
+    }
+  } else if (data.startsWith("r:")) {
+    const String who = data.substring(2);
+    String gone;
+    {
+      SubsLock l;
+      const int i = findSub(who);
+      if (i > 0) {
+        gone = subs[i].name;
+        subs.erase(subs.begin() + i);
+        saveSubs();
+      }
+    }
+    if (gone.length()) {
+      answer = "Removed " + gone;
+      sendNow(who, "🚪 Ze owner has removed you from ze trap. And so on, and so on.", "");
+    } else {
+      answer = "Not here anymore";
+    }
+  }
   // data = "l:<eventId>:<class>"
   const int a = data.indexOf(':'), b = data.lastIndexOf(':');
   if (data.startsWith("l:") && b > a) {
@@ -223,6 +406,9 @@ void pollUpdates() {
   filter["result"][0]["update_id"] = true;
   filter["result"][0]["message"]["chat"]["id"] = true;
   filter["result"][0]["message"]["text"] = true;
+  filter["result"][0]["message"]["chat"]["first_name"] = true;
+  filter["result"][0]["message"]["chat"]["username"] = true;
+  filter["result"][0]["message"]["chat"]["title"] = true;
   filter["result"][0]["callback_query"]["id"] = true;
   filter["result"][0]["callback_query"]["data"] = true;
   filter["result"][0]["callback_query"]["message"]["chat"]["id"] = true;
@@ -237,21 +423,59 @@ void pollUpdates() {
     else if (u["callback_query"].is<JsonObject>()) chat = u["callback_query"]["message"]["chat"]["id"].as<String>();
     if (!chat.length()) continue;
 
+    const String text = u["message"]["text"].as<String>();
+    String name = u["message"]["chat"]["title"].as<String>();  // groups have a title
+    if (!name.length()) name = u["message"]["chat"]["first_name"].as<String>();
+    if (!name.length()) name = u["message"]["chat"]["username"].as<String>();
+    if (!name.length()) name = chat;
+    const bool start = text.startsWith("/start") || text.startsWith("/join");
+
     // pairing: the first chat that says /start owns the trap
-    if (!settings.tgChat.length() && u["message"]["text"].as<String>().startsWith("/start")) {
-      settings.tgChat = chat;
-      settings.save();
-      sendNow(chat, "🤝 <b>Paired.</b> From now on I talk only to you. This is not love, this is a protocol.", "");
+    if (findSub(chat) < 0 && start && !ownerChat().length()) {
+      addSub(chat, name);
+      ensureCode();
+      sendNow(chat, "🤝 <b>Paired.</b> You are ze owner now. Others can join: they send /start and you decide, "
+                    "or they use ze join code (/code). This is not love, this is a protocol.", "");
+      continue;
     }
-    if (chat != settings.tgChat) {
-      Serial.printf("[Telegram 🚫] ignoring chat %s\n", chat.c_str());
+    if (findSub(chat) < 0) {
+      if (!start) {
+        Serial.printf("[Telegram 🚫] ignoring chat %s\n", chat.c_str());
+        continue;
+      }
+      const int sp = text.indexOf(' ');
+      String code = sp > 0 ? text.substring(sp + 1) : String();
+      code.trim();
+      if (code.length() && code == settings.tgCode) {
+        if (addSub(chat, name)) {
+          sendNow(chat, "🤝 <b>Ze code is correct, welcome comrade.</b> From now on you get every snap. /help", "");
+          sendNow(ownerChat(), "👋 <b>" + esc(name) + "</b> joined with ze code. /users", "");
+        } else {
+          sendNow(chat, "😬 Ze trap is full, " + String(MAX_TG_USERS) + " comrades already. Ask ze owner.", "");
+        }
+        continue;
+      }
+      bool known = false;
+      {
+        SubsLock l;
+        for (auto& pq : pending) known |= pq.chat == chat;
+        if (!known) {
+          if (pending.size() >= 6) pending.erase(pending.begin());
+          pending.push_back({chat, name});
+        }
+      }
+      sendNow(chat, "🚪 <b>Knock knock.</b> I have asked ze owner of this trap. Wait a little, "
+                    "or ask them for ze join code and send <code>/start CODE</code>.", "");
+      if (!known)
+        sendNow(ownerChat(), "🙋 <b>" + esc(name) + "</b> wants to listen to ze trap. Let them in?",
+                "{\"inline_keyboard\":[[{\"text\":\"✅ let in\",\"callback_data\":\"j:" + chat +
+                    ":1\"},{\"text\":\"🚫 no\",\"callback_data\":\"j:" + chat + ":0\"}]]}");
       continue;
     }
     if (u["callback_query"].is<JsonObject>()) {
       handleCallback(chat, u["callback_query"]["id"].as<String>(), u["callback_query"]["data"].as<String>());
-    } else {
-      const String text = u["message"]["text"].as<String>();
-      if (text.startsWith("/")) handleCommand(chat, text);
+    } else if (text.startsWith("/")) {
+      handleCommand(chat, text);
     }
   }
 }
@@ -270,7 +494,7 @@ void dailyReport() {
   if (!getLocalTime(&t, 0)) return;
   if (t.tm_hour == 20 && t.tm_mday != lastReportDay) {
     lastReportDay = t.tm_mday;
-    sendNow(settings.tgChat, diaryText(), "");
+    sendAll(diaryText(), "");
   }
 }
 
@@ -280,19 +504,19 @@ void task(void*) {
     vTaskDelay(pdMS_TO_TICKS(100));
     if (!configured() || !net::online() || net::otaInProgress()) continue;
     if (!bot.length()) fetchBotName();
-    if (!bootSent && settings.tgChat.length()) {
+    if (!bootSent && ownerChat().length()) {
       bootSent = true;
-      sendNow(settings.tgChat, bootText(), "");
+      sendNow(ownerChat(), bootText(), "");  // only ze owner: ze others do not need every reboot
     }
     Outgoing* m = nullptr;
     while (xQueueReceive(outQ, &m, 0) == pdTRUE) {
-      if (settings.tgChat.length()) sendNow(settings.tgChat, m->text, m->markup);
+      sendAll(m->text, m->markup);
       delete m;
     }
     if (millis() - lastPoll > 3500) {
       lastPoll = millis();
       pollUpdates();
-      if (settings.tgChat.length()) dailyReport();
+      dailyReport();
     }
   }
 }
@@ -300,6 +524,9 @@ void task(void*) {
 }  // namespace
 
 void begin() {
+  subsMx = xSemaphoreCreateRecursiveMutex();
+  loadSubs();
+  ensureCode();
   outQ = xQueueCreate(8, sizeof(Outgoing*));
   xTaskCreatePinnedToCore(task, "telegram", 12288, nullptr, 1, nullptr, 0);
 }
@@ -335,6 +562,42 @@ void sendTest() {
 }
 
 String botName() { return bot; }
+
+void usersToJson(JsonObject t) {
+  SubsLock l;
+  t["paired"] = !subs.empty();
+  t["join_code"] = settings.tgCode;
+  t["max_users"] = MAX_TG_USERS;
+  t["pending"] = pending.size();
+  JsonArray a = t["users"].to<JsonArray>();
+  for (size_t i = 0; i < subs.size(); i++) {
+    JsonObject u = a.add<JsonObject>();
+    u["chat"] = subs[i].chat;
+    u["name"] = subs[i].name;
+    u["owner"] = i == 0;
+  }
+}
+
+bool removeUser(const String& chat) {
+  SubsLock l;
+  const int i = findSub(chat);
+  if (i < 0) return false;
+  subs.erase(subs.begin() + i);
+  saveSubs();
+  return true;
+}
+
+void unpairAll() {
+  SubsLock l;
+  subs.clear();
+  pending.clear();
+  saveSubs();
+}
+
+void newCode() {
+  settings.tgCode = "";
+  ensureCode();
+}
 String lastError() { return lastErr; }
 
 }  // namespace telegram

@@ -10,6 +10,8 @@ void Settings::load() {
   wifiPass = p.getString("pass", "");
   tgToken = p.getString("tg_token", "");
   tgChat = p.getString("tg_chat", "");
+  tgNames = p.getString("tg_names", "");
+  tgCode = p.getString("tg_code", "");
   deviceName = p.getString("name", "polh-kill");
   adminPass = p.getString("admin", "");
   ghToken = p.getString("gh_token", "");
@@ -34,6 +36,8 @@ void Settings::save() const {
   p.putString("pass", wifiPass);
   p.putString("tg_token", tgToken);
   p.putString("tg_chat", tgChat);
+  p.putString("tg_names", tgNames);
+  p.putString("tg_code", tgCode);
   p.putString("name", deviceName);
   p.putString("admin", adminPass);
   p.putString("gh_token", ghToken);

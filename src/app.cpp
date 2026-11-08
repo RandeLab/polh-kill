@@ -338,7 +338,7 @@ void statusToJson(JsonObject o) {
   l["samples"] = clf.total();
   JsonObject t = o["telegram"].to<JsonObject>();
   t["configured"] = telegram::configured();
-  t["paired"] = settings.tgChat.length() > 0;
+  telegram::usersToJson(t);
   t["bot"] = telegram::botName();
   t["last_error"] = telegram::lastError();
   o["armed"] = settings.armed;

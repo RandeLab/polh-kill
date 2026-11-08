@@ -79,13 +79,25 @@ No sensor yet? `pio run -e sim -t upload` runs a simulator with "inject snap" bu
 2. The setup page opens by itself (otherwise http://192.168.4.1). Enter WiFi, password,
    Telegram bot token, optionally an admin password (protects OTA and wipe).
 3. polh-kill reboots into your WiFi: **http://polh-kill.local**.
-4. Send `/start` to your bot – the first chat that does this is paired. Nobody else gets answers.
+4. Send `/start` to your bot – the first chat that does this becomes ze **owner**. Others can join (see below).
 
 Long-press BOOT (3 s) opens the hotspot again at any time.
 
 ### ✈️ Telegram bot
 
 Create it with [@BotFather](https://t.me/BotFather) (`/newbot`), copy the token into the setup page.
+Optional, for nice autocompletion: `/setcommands` in BotFather with ze list below.
+
+**More comrades, one bot.** Ze trap does not belong to one person, this would be private property.
+Up to 10 people can listen to ze same bot:
+
+- A new person sends `/start` → ze owner gets a message with **✅ let in / 🚫 no**.
+- Or with ze **join code** (shown in ze web UI under ✈️ Telegram, or `/code` for ze owner):
+  `/start 123456`, or simply ze link `https://t.me/<yourbot>?start=123456` – in without asking.
+- Everybody gets alerts and can label events with ze buttons. Ze boot message goes only to ze owner.
+- `/users` lists everybody (ze owner gets 🚪 remove buttons), `/leave` to go. In ze web UI:
+  remove people, roll a new join code, or unpair everybody.
+- A Telegram group also works: add ze bot to ze group, `/start` there, and ze whole group is one comrade.
 
 | command | what |
 |---|---|
@@ -95,6 +107,9 @@ Create it with [@BotFather](https://t.me/BotFather) (`/newbot`), copy the token 
 | `/stats` | pure numbers, per class |
 | `/lab` | link to the learning lab |
 | `/ping` | are you alive? |
+| `/users` | who listens (owner: remove buttons) |
+| `/code` | ze join code + link (owner only) |
+| `/leave` | stop listening |
 
 ### 🌈 LED
 
@@ -191,14 +206,21 @@ Noch kein Sensor? `pio run -e sim -t upload` startet einen Simulator mit «injec
 2. Die Einrichtungsseite öffnet sich selbst (sonst http://192.168.4.1). WLAN, Passwort,
    Telegram-Bot-Token und optional ein Admin-Passwort (schützt OTA und Löschen) eingeben.
 3. polh-kill startet neu und ist in deinem WLAN: **http://polh-kill.local**.
-4. Dem Bot `/start` schicken – der erste Chat, der das tut, wird gekoppelt. Alle anderen werden ignoriert.
+4. Dem Bot `/start` schicken – der erste Chat, der das tut, wird **Besitzer**. Weitere Leute können dazukommen (siehe unten).
 
 BOOT lange drücken (3 s) öffnet den Hotspot jederzeit wieder.
 
 ### ✈️ Telegram-Bot
 
 Mit [@BotFather](https://t.me/BotFather) erstellen (`/newbot`), Token in die Einrichtungsseite kopieren.
-Befehle: `/status`, `/wiegehts` bzw. `/howareyou`, `/arm`, `/disarm`, `/stats`, `/lab`, `/ping`.
+Befehle: `/status`, `/wiegehts` bzw. `/howareyou`, `/arm`, `/disarm`, `/stats`, `/lab`, `/ping`, `/users`, `/code`, `/leave`.
+
+**Mehrere Leute, ein Bot** (bis 10): Wer neu `/start` schickt, klopft an – der Besitzer bekommt
+**✅ reinlassen / 🚫 nein**. Mit dem **Beitrittscode** (Weboberfläche unter ✈️ Telegram oder `/code`)
+geht es ohne Nachfrage: `/start 123456` oder der Link `https://t.me/<deinbot>?start=123456`.
+Alle bekommen Alarme und können Ereignisse beschriften. `/users` zeigt alle, `/leave` meldet ab;
+in der Weboberfläche kann man Leute entfernen, einen neuen Code würfeln oder alle entkoppeln.
+Eine Telegram-Gruppe geht auch: Bot in die Gruppe holen, dort `/start`.
 
 ### 🔒 Geheimnisse
 

@@ -5,7 +5,10 @@
 struct Settings {
   // network & bot (set through the captive portal)
   String wifiSsid, wifiPass;
-  String tgToken, tgChat;   // chat id empty = pair with the first /start
+  String tgToken;
+  String tgChat;            // subscriber chat ids, comma separated; first = owner. empty = first /start owns it
+  String tgNames;           // display names, one per line, same order as tgChat
+  String tgCode;            // join code: "/start <code>" lets someone in without asking ze owner
   String deviceName = "polh-kill";
   String adminPass;         // optional: protects /update, OTA and destructive API calls
 

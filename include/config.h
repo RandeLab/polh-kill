@@ -38,6 +38,7 @@ constexpr int   LIVE_RATE_HZ      = 50;     // live plot points per second
 
 // ---------------- learning ----------------
 constexpr int   MAX_CLASSES       = 12;     // 5 built-in + custom ones (classes.cpp)
+constexpr int   MAX_TG_USERS      = 10;     // Telegram subscribers of one bot (owner + 9 comrades)
 constexpr int   NFEAT             = 12;     // see features.h for names
 constexpr int   RECENT_EVENTS     = 6;      // raw windows kept in RAM
 constexpr int   MAX_RAW_ON_FLASH  = 650;    // raw windows kept on flash (6 kB file = 2 blocks of 4 kB)

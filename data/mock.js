@@ -88,7 +88,7 @@
         sensor: { ok: true, name: 'simulator', rate: 1000, samples: 1, baseline_g: 0.0042, sigma_g: 0.0015, threshold_g: 0.032, gravity: [0.02, -0.01, 1.0], simulated: true },
         stats: { events: st.events, snaps_total: st.snaps, snaps_boot: 0 },
         lab: { armed_label: st.armed, remaining_ms: st.armed ? 60000 - (Date.now() - st.armedAt) : 0, samples: samples.length },
-        telegram: { configured: true, paired: true, bot: 'PolhKillBot', last_error: '' }, armed: cfg.armed, fs: { used: 120e3, total: 6e6, captures: st.events, labelled: samples.length, raw: st.events, raw_max: 650 },
+        telegram: { configured: true, paired: true, bot: 'PolhKillBot', last_error: '', join_code: '482913', max_users: 10, pending: 1, users: [{ chat: '1', name: 'Aaron', owner: true }, { chat: '2', name: 'Marc', owner: false }] }, armed: cfg.armed, fs: { used: 120e3, total: 6e6, captures: st.events, labelled: samples.length, raw: st.events, raw_max: 650 },
         github: { configured: true, repo: 'RandeLab/polh-kill', branch: 'gh-pages', pages_url: 'https://randelab.github.io/polh-kill/', last_ok_ago_ms: 240000, backlog: 2, last_message: '🐭 3 new captures from ze trap', last_error: '' } };
       if (p === '/api/config') return { ...cfg };
       if (p === '/api/events') return recent;
