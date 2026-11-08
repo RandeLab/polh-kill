@@ -55,12 +55,13 @@ class Detector {
   float g_[3] = {0, 0, 1};
   float alphaG_ = 0, alphaN_ = 0;
   float mean_ = 0.005f, var_ = 0.0001f, thr_ = 0.05f;
-  int16_t ring_[RING_SAMPLES][3];
+  int16_t (*ring_)[3] = nullptr;  // RING_SAMPLES x 3, allocated in PSRAM
   uint32_t head_ = 0, trigHead_ = 0;
   uint16_t preN_ = 0, postN_ = 0;
   uint32_t bucketN_ = 0, bucketLeft_ = 0;
   float bucketMax_ = 0;
   float echo_ = 0, echoDecay_ = 0, capPeak_ = 0;  // echo guard (see detector.cpp)
+  uint32_t captured_ = 0, quiet_ = 0, postMaxN_ = 0, hangN_ = 0, curPostN_ = 0;  // adaptive window
   uint32_t nextId_ = 1;
 };
 

@@ -185,7 +185,10 @@ bool push() {
   std::vector<uint32_t> done;
   std::unique_ptr<int16_t[]> xyz(new (std::nothrow) int16_t[WIN_MAX_SAMPLES * 3]);
   if (!xyz) { lastErr = "out of memory"; return false; }
+  uint32_t batchSamples = 0;
   for (auto& r : todo) {
+    // long windows (up to 2.5 s) make big JSON files: max ~25 s of waveform per push
+    if (batchSamples > 25000) break;
     RawHeader h;
     bool raw;
     {
@@ -193,6 +196,7 @@ bool push() {
       raw = (r.flags & FLAG_RAW) && dataset::readRaw(r.id, h, xyz.get());
     }
     if (raw) {
+      batchSamples += h.n;
       const String sha = blob(captureJson(r, h, xyz.get()));
       if (!sha.length()) return false;
       files.push_back({"data/captures/" + String(r.id) + ".json", sha});

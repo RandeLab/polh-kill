@@ -373,7 +373,8 @@ void statusToJson(JsonObject o) {
   fs["captures"] = dataset::count();
   fs["labelled"] = dataset::labelled();
   fs["raw"] = dataset::rawCount();
-  fs["raw_max"] = MAX_RAW_ON_FLASH;
+  fs["raw_kb"] = dataset::rawBytes() / 1024;
+  fs["raw_budget_kb"] = RAW_BUDGET_BLOCKS * 4;
   github::statusToJson(o["github"].to<JsonObject>());
 }
 

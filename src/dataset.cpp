@@ -14,6 +14,9 @@ constexpr float FS_FULL = 0.92f;            // stop writing raw windows above th
 uint32_t nextId = 1;
 size_t live = 0, nLabelled = 0;
 std::deque<uint32_t> rawIds;  // ids with raw windows on flash, oldest first
+std::deque<uint8_t> rawBlk;   // flash blocks of each raw window, same order
+size_t rawBlocks = 0;
+uint8_t blocksFor(uint16_t n) { return n ? (sizeof(RawHeader) + n * 6u + 4095) / 4096 : 2; }
 size_t indexBytes = 0;        // size of ze index file
 
 bool isLabel(uint8_t l) { return l != LABEL_NONE && l != LABEL_DELETED; }
@@ -91,7 +94,11 @@ bool begin() {
       nextId = max(nextId, rec.id + 1);
       if (rec.label != LABEL_DELETED) live++;
       if (isLabel(rec.label)) nLabelled++;
-      if (rec.flags & FLAG_RAW) rawIds.push_back(rec.id);
+      if (rec.flags & FLAG_RAW) {
+        rawIds.push_back(rec.id);
+        rawBlk.push_back(blocksFor(rec.rawN));
+        rawBlocks += rawBlk.back();
+      }
     }
     f.close();
   }
@@ -113,15 +120,18 @@ uint32_t add(const EventWindow& w, const float feat[NFEAT], int label, int predC
   memcpy(rec.feat, feat, sizeof(rec.feat));
 
   // keep flash usage bounded: drop the oldest raw windows (features stay). Max 2 per capture,
-  // so lowering MAX_RAW_ON_FLASH never means one giant delete that blocks ze flash for seconds
+  // so lowering RAW_BUDGET_BLOCKS never means one giant delete that blocks ze flash for seconds
   int dropped = 0;
-  while (!rawIds.empty() && dropped++ < 2 && (rawIds.size() >= (size_t)MAX_RAW_ON_FLASH || fsUsed() > fsTotal() * FS_FULL)) {
+  const uint8_t need = blocksFor(w.n);
+  while (!rawIds.empty() && dropped++ < 2 && (rawBlocks + need > (size_t)RAW_BUDGET_BLOCKS || fsUsed() > fsTotal() * FS_FULL)) {
     const uint32_t old = rawIds.front();
     rawIds.pop_front();
+    rawBlocks -= rawBlk.front();
+    rawBlk.pop_front();
     dataFS.remove(rawPath(old));
     patchRecord(old, [](SampleRec& r) { r.flags &= ~FLAG_RAW; });
   }
-  if (rawIds.size() < (size_t)MAX_RAW_ON_FLASH && fsUsed() < fsTotal() * FS_FULL) {
+  if (rawBlocks + need <= (size_t)RAW_BUDGET_BLOCKS && fsUsed() < fsTotal() * FS_FULL) {
     File raw = dataFS.open(rawPath(rec.id), "w");
     if (raw) {
       RawHeader h{RAW_MAGIC, w.rateHz, w.n, w.trig, 0, w.thresholdG};
@@ -129,7 +139,10 @@ uint32_t add(const EventWindow& w, const float feat[NFEAT], int label, int predC
       raw.write((const uint8_t*)w.xyz, (size_t)w.n * 3 * sizeof(int16_t));
       raw.close();
       rec.flags |= FLAG_RAW;
+      rec.rawN = w.n;
       rawIds.push_back(rec.id);
+      rawBlk.push_back(need);
+      rawBlocks += need;
     }
   }
 
@@ -178,6 +191,8 @@ void wipe() {
     }
   }
   rawIds.clear();
+  rawBlk.clear();
+  rawBlocks = 0;
   indexBytes = 0;
   live = nLabelled = 0;
   nextId = 1;  // a fresh dataset starts at #1 again
@@ -214,10 +229,32 @@ size_t count() { return live; }
 size_t labelled() { return nLabelled; }
 size_t rawCount() { return rawIds.size(); }
 
+size_t rawBytes() { return rawBlocks * 4096; }
+
+int shiftLabels(int from, int delta) {
+  File f = dataFS.open(INDEX, "r+");
+  if (!f) return 0;
+  int moved = 0;
+  SampleRec rec;
+  for (size_t pos = 0; f.seek(pos) && f.read((uint8_t*)&rec, sizeof(rec)) == sizeof(rec); pos += sizeof(rec)) {
+    bool change = false;
+    if (rec.label >= from && rec.label < LABEL_NONE) { rec.label += delta; change = true; moved++; }
+    if (rec.predCls >= from && rec.predCls < LABEL_NONE) { rec.predCls += delta; change = true; }
+    if (!change) continue;
+    rec.flags &= ~FLAG_PUBLISHED;
+    f.seek(pos);
+    f.write((const uint8_t*)&rec, sizeof(rec));
+  }
+  f.close();
+  return moved;
+}
+
 bool trimOne() {
-  if (rawIds.size() <= (size_t)MAX_RAW_ON_FLASH) return false;
+  if (rawBlocks <= (size_t)RAW_BUDGET_BLOCKS || rawIds.empty()) return false;
   const uint32_t old = rawIds.front();
   rawIds.pop_front();
+  rawBlocks -= rawBlk.front();
+  rawBlk.pop_front();
   dataFS.remove(rawPath(old));
   patchRecord(old, [](SampleRec& r) { r.flags &= ~FLAG_RAW; });
   return true;
@@ -226,7 +263,7 @@ bool trimOne() {
 // captures on a nearly full partition this took >5 s and ze task watchdog killed ze trap every
 // 45 s. So we never ask LittleFS; we count ourselves: each raw window = 2 blocks, plus ze index.
 size_t fsUsed() {
-  const size_t blocks = rawIds.size() * 2 + (indexBytes + 4095) / 4096 + 16;  // 16: dirs, metadata, classes
+  const size_t blocks = rawBlocks + (indexBytes + 4095) / 4096 + 16;  // 16: dirs, metadata, classes
   return blocks * 4096;
 }
 size_t refreshUsage() { return fsUsed(); }

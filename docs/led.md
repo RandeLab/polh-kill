@@ -26,6 +26,7 @@ ze most direct form of communication, without ideology in between. Almost.
 | 🔵 blue, 0.4 s | capture classified as **footstep** |
 | 🟡 yellow, 0.4 s | capture classified as **mouse** |
 | ⚪ white, 0.4 s | capture classified as **other** |
+| 🩷 pink, 0.4 s | capture classified as **armed-trap** (ze trap was re-armed) |
 | 🟣 violet, 0.4 s | capture classified as one of **your own classes** (cucumber, sausage, …) |
 | 🟢 green double blink | a **labelled sample was learned** (lab or Telegram button) |
 | 🩵 cyan double blink | captures were **pushed to GitHub Pages** |

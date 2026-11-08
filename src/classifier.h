@@ -7,7 +7,7 @@
 #include <Arduino.h>
 #include "config.h"
 
-enum EventClass { C_SNAP = 0, C_BUMP, C_FOOTSTEP, C_MOUSE, C_OTHER };
+enum EventClass { C_SNAP = 0, C_BUMP, C_FOOTSTEP, C_MOUSE, C_OTHER, C_ARMED };
 // class registry (classes.cpp): built-ins first, snap is always index 0
 void classesBegin();
 int classCount();

@@ -20,6 +20,15 @@ void Detector::begin(uint16_t rateHz) {
   alphaN_ = 1.0f - expf(-1.0f / (rate_ * 5.0f));   // noise floor: tau 5 s
   preN_ = (uint16_t)min<int>(rate_ * WIN_PRE_MS / 1000, WIN_MAX_SAMPLES / 4);
   postN_ = (uint16_t)min<int>(rate_ * WIN_POST_MS / 1000, WIN_MAX_SAMPLES - preN_);
+  postMaxN_ = (uint32_t)min<int>(rate_ * WIN_MAX_MS / 1000, WIN_MAX_SAMPLES) - preN_;
+  hangN_ = (uint32_t)rate_ * WIN_HANGOVER_MS / 1000;
+  if (!ring_) {
+    const size_t bytes = sizeof(int16_t) * 3 * RING_SAMPLES;
+    void* p = psramFound() ? heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM) : nullptr;
+    if (!p) p = malloc(bytes);
+    memset(p, 0, bytes);
+    ring_ = static_cast<int16_t(*)[3]>(p);
+  }
   bucketN_ = max<uint32_t>(1, rate_ / LIVE_RATE_HZ);
   bucketLeft_ = bucketN_;
   stateLeft_ = (uint32_t)rate_ * WARMUP_MS / 1000;
@@ -59,7 +68,8 @@ void Detector::push(const Sample& s) {
   // to half of ze last peak and decays back with tau 1.5 s. A new, stronger event still triggers.
   if (echoDecay_ == 0) echoDecay_ = expf(-1.0f / (rate_ * 1.5f));
   echo_ *= echoDecay_;
-  thr_ = max(max((float)minG, mean_ + kSigma * sqrtf(var_)), echo_);
+  const float noiseThr = max((float)minG, mean_ + kSigma * sqrtf(var_));
+  thr_ = max(noiseThr, echo_);
 
   // live plot bucket
   if (dyn > bucketMax_) bucketMax_ = dyn;
@@ -76,13 +86,20 @@ void Detector::push(const Sample& s) {
     case IDLE:
       if (dyn > thr_) {
         trigHead_ = head_ - 1;
-        stateLeft_ = postN_;
+        captured_ = 0;
+        quiet_ = hangN_;
         state_ = CAPTURE;
       }
       break;
     case CAPTURE:
+      // adaptive window: at least WIN_POST_MS, longer while ze signal keeps moving (re-arming ze
+      // trap takes seconds), ends WIN_HANGOVER_MS after it went quiet, never longer than WIN_MAX_MS
       if (dyn > capPeak_) capPeak_ = dyn;
-      if (--stateLeft_ == 0) {
+      captured_++;
+      if (dyn > noiseThr) quiet_ = hangN_;
+      else if (quiet_) quiet_--;
+      if ((captured_ >= postN_ && quiet_ == 0) || captured_ >= postMaxN_) {
+        curPostN_ = captured_;
         emitWindow();
         echo_ = max(echo_, 0.5f * capPeak_);
         capPeak_ = 0;
@@ -105,7 +122,7 @@ void Detector::emitWindow() {
   w->ts = (now > 1700000000) ? now : 0;
   w->rateHz = rate_;
   w->trig = preN_;
-  w->n = preN_ + postN_;
+  w->n = preN_ + curPostN_;
   w->thresholdG = thr_;
   const uint32_t start = trigHead_ - preN_;
   for (uint16_t i = 0; i < w->n; i++) {

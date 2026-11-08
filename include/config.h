@@ -29,9 +29,11 @@
 
 // ---------------- detection ----------------
 constexpr int   WIN_PRE_MS        = 200;    // kept before the trigger
-constexpr int   WIN_POST_MS       = 800;    // recorded after the trigger
-constexpr int   WIN_MAX_SAMPLES   = 1600;   // 1 s at up to 1.6 kHz
-constexpr int   RING_SAMPLES      = 2048;   // power of two, >= WIN_MAX_SAMPLES
+constexpr int   WIN_POST_MS       = 800;    // recorded after the trigger at least ...
+constexpr int   WIN_MAX_MS        = 2500;   // ... and while it keeps moving, but never more than this in total
+constexpr int   WIN_HANGOVER_MS   = 400;    // window ends this long after ze signal went quiet
+constexpr int   WIN_MAX_SAMPLES   = 2500;   // 2.5 s at 1 kHz (~15 kB raw, 4 flash blocks)
+constexpr int   RING_SAMPLES      = 4096;   // power of two, >= WIN_MAX_SAMPLES (in PSRAM)
 constexpr int   REFRACTORY_MS     = 300;    // dead time after a window
 constexpr int   WARMUP_MS         = 2000;   // learn the noise floor before triggering
 constexpr int   LIVE_RATE_HZ      = 50;     // live plot points per second
@@ -41,8 +43,8 @@ constexpr int   MAX_CLASSES       = 12;     // 5 built-in + custom ones (classes
 constexpr int   MAX_TG_USERS      = 10;     // Telegram subscribers of one bot (owner + 9 comrades)
 constexpr int   NFEAT             = 12;     // see features.h for names
 constexpr int   RECENT_EVENTS     = 6;      // raw windows kept in RAM
-constexpr int   MAX_RAW_ON_FLASH  = 300;    // raw windows kept on flash (6 kB file = 2 blocks of 4 kB):
-                                            // ~2.6 of 6 MB. A nearly full LittleFS walks ze whole flash to
-                                            // find a free block on every write - seconds, both cores stalled.
-                                            // Older waveforms live on GitHub Pages anyway.
+constexpr int   RAW_BUDGET_BLOCKS = 640;    // raw windows on flash, counted in 4 kB blocks (~2.6 of 6 MB):
+                                            // 1 s window = 2 blocks, 2.5 s = 4. A nearly full LittleFS walks ze
+                                            // whole flash to find a free block on every write - seconds, both
+                                            // cores stalled. Older waveforms live on GitHub Pages anyway.
 constexpr uint32_t TEST_ARM_TIMEOUT_MS = 60000;

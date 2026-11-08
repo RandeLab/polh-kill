@@ -2,7 +2,7 @@
 //   /ds/index2.bin  fixed-size records (features + prediction + label), append-only;
 //                   label LABEL_NONE = not labelled yet, LABEL_DELETED = tombstone
 //   /ds/w<id>.bin   raw window (header + int16 xyz), only the newest
-//                   MAX_RAW_ON_FLASH are kept (~6 kB = 2 flash blocks each)
+//                   RAW_BUDGET_BLOCKS are kept (1 s window = 2 flash blocks)
 // The v1 file /ds/index.bin (labelled samples only) is migrated on first boot.
 #pragma once
 #include <Arduino.h>
@@ -26,7 +26,7 @@ struct __attribute__((packed)) SampleRec {
   uint16_t rateHz;
   uint8_t predCls;   // what the model said at capture time
   uint8_t method;
-  uint16_t reserved;
+  uint16_t rawN;      // samples in ze raw window (0 = old record: assume 1 s)
   float snapP;
   float feat[NFEAT];
 };
@@ -53,7 +53,9 @@ String rawPath(uint32_t id);
 size_t count();      // captures (not deleted)
 size_t labelled();   // captures with a label
 size_t rawCount();
-bool trimOne();  // drop ze oldest raw window if above MAX_RAW_ON_FLASH (one per call, call slowly)
+size_t rawBytes();      // flash used by raw windows (blocks x 4 kB)
+int shiftLabels(int from, int delta);  // labels/predictions >= from move by delta
+bool trimOne();  // drop ze oldest raw window if above RAW_BUDGET_BLOCKS (one per call, call slowly)
 size_t fsUsed();        // cached, cheap
 size_t refreshUsage();  // walks ze whole filesystem: slow, never from a web handler
 size_t fsTotal();

@@ -24,7 +24,7 @@ cheese waits… and you, you do not know. This is unbearable. polh-kill ends thi
 2. **Detects**: gravity and the noise floor are tracked recursively; an impulse above `noise + k·σ`
    cuts a 1 s window (200 ms before, 800 ms after).
 3. **Learns**: 12 features per event (peak, jerk, ringing frequency, FFT bands, ring-down …) feed an
-   **online classifier**: naive Bayes for 5 classes + **recursive least squares** for snap vs. not-snap.
+   **online classifier**: naive Bayes for 6 classes (incl. 🪤 armed-trap) + **recursive least squares** for snap vs. not-snap.
    Every labelled sample updates the model immediately → [docs/learning.md](docs/learning.md).
 4. **Learning lab** in the web UI: choose "snap", arm the test, let the trap go – the waveform appears,
    you keep it, the model gets smarter. Live plot, confusion matrix, dataset export.
@@ -124,7 +124,7 @@ words it gets totally wrong are fixed one by one in `FIX` in tools/voice.py. Swi
 | steady | meaning | flash | meaning |
 |---|---|---|---|
 | 🔵 blue breathing | hotspot open | 🔴 red blinking | **snap!** |
-| 🟢 green | armed | 🟠 orange · 🔵 blue · 🟡 yellow · ⚪ white | bump · footstep · mouse · other |
+| 🟢 green | armed | 🟠 orange · 🔵 blue · 🟡 yellow · ⚪ white · 🩷 pink | bump · footstep · mouse · other · armed-trap |
 | 🟡 yellow | disarmed | 🟣 violet | one of your own classes |
 | 🟣 magenta breathing | learning test armed | 🟢 green double | sample learned |
 | 🟣 magenta solid | OTA running | 🩵 cyan double | pushed to GitHub Pages |
@@ -164,7 +164,7 @@ Ungewissheit.
 2. **Erkennen**: Schwerkraft und Grundrauschen werden rekursiv nachgeführt; ein Impuls über
    `Rauschen + k·σ` schneidet ein 1-s-Fenster aus (200 ms davor, 800 ms danach).
 3. **Lernen**: 12 Merkmale pro Ereignis (Spitze, Ruck, Schwingfrequenz, FFT-Bänder, Ausschwingzeit …)
-   gehen in einen **Online-Klassifikator**: Naive Bayes für 5 Klassen + **rekursive kleinste Quadrate**
+   gehen in einen **Online-Klassifikator**: Naive Bayes für 6 Klassen (inkl. 🪤 armed-trap) + **rekursive kleinste Quadrate**
    (RLS) für Schnapper ja/nein. Jedes gelabelte Beispiel aktualisiert das Modell sofort →
    [docs/learning.md](docs/learning.md).
 4. **Lernlabor** im Webinterface: «snap» wählen, Test scharf schalten, Falle auslösen – die Kurve

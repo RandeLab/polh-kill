@@ -1,4 +1,4 @@
-// Class registry: 5 built-in classes + user-defined ones (name + emoji),
+// Class registry: 6 built-in classes + user-defined ones (name + emoji),
 // persisted as /classes.txt on the dataset partition (survives UI/firmware updates
 // and "wipe dataset", which only clears /ds).
 #include <LittleFS.h>
@@ -10,7 +10,9 @@ struct ClassDef {
   char name[17];
   char emoji[33];
 };
-const ClassDef BUILTIN[] = {{"snap", "💥"}, {"bump", "🤜"}, {"footstep", "👣"}, {"mouse", "🐭"}, {"other", "❓"}};
+// new built-ins go at ze END only: labels are stored as indices (see migration in classesBegin)
+const ClassDef BUILTIN[] = {{"snap", "💥"}, {"bump", "🤜"}, {"footstep", "👣"},
+                            {"mouse", "🐭"}, {"other", "❓"}, {"armed-trap", "🪤"}};
 constexpr int NBUILTIN = sizeof(BUILTIN) / sizeof(BUILTIN[0]);
 constexpr const char* FILE_PATH = "/classes.txt";
 
@@ -20,6 +22,7 @@ volatile int count = NBUILTIN;
 void save() {
   File f = dataFS.open(FILE_PATH, "w");
   if (!f) return;
+  f.printf("#builtin %d\n", NBUILTIN);  // lets a later firmware with more built-ins shift ze labels
   for (int i = NBUILTIN; i < count; i++) f.printf("%s %s\n", defs[i].name, defs[i].emoji);
   f.close();
 }
@@ -45,9 +48,14 @@ void classesBegin() {
   count = NBUILTIN;
   File f = dataFS.open(FILE_PATH, "r");
   if (!f) return;
+  int fileBuiltins = 5;  // files without a header were written when there were 5 built-ins
   while (f.available() && count < MAX_CLASSES) {
     String line = f.readStringUntil('\n');
     line.trim();
+    if (line.startsWith("#builtin ")) {
+      fileBuiltins = line.substring(9).toInt();
+      continue;
+    }
     const int sp = line.indexOf(' ');
     if (sp <= 0) continue;
     const String n = line.substring(0, sp), e = line.substring(sp + 1);
@@ -57,6 +65,12 @@ void classesBegin() {
     count = count + 1;
   }
   f.close();
+  if (fileBuiltins < NBUILTIN) {
+    // new built-ins were added: custom classes moved up, so their stored labels must move too
+    const int moved = dataset::shiftLabels(fileBuiltins, NBUILTIN - fileBuiltins);
+    Serial.printf("[Classes 🏷️] %d new built-in class(es), %d labels shifted\n", NBUILTIN - fileBuiltins, moved);
+    save();
+  }
   Serial.printf("[Classes 🏷️] %d classes (%d custom)\n", (int)count, (int)count - NBUILTIN);
 }
 

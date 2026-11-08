@@ -77,6 +77,9 @@ void closePortal() {
 void beginSta() {
   WiFi.setAutoReconnect(true);
   WiFi.begin(settings.wifiSsid.c_str(), settings.wifiPass.c_str());
+  // no modem sleep: it delays every packet by up to ~100 ms and makes ze live plot stutter
+  // (on USB power it costs nothing; revisit for battery operation)
+  WiFi.setSleep(false);
   lastRetry = millis();
 }
 

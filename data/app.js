@@ -1,7 +1,7 @@
 /* polh-kill web UI — vanilla JS, no CDN (must work on the offline hotspot) */
 'use strict';
 
-const BUILTIN = ['snap', 'bump', 'footstep', 'mouse', 'other'];
+const BUILTIN = ['snap', 'bump', 'footstep', 'mouse', 'other', 'armed-trap'];
 let CLASSES = BUILTIN.slice();  // replaced by /api/classes (built-in + custom)
 let EMOJI = { snap: '💥', bump: '🤜', footstep: '👣', mouse: '🐭', other: '❓' };
 let classInfo = [];
@@ -219,7 +219,7 @@ async function loadStatus() {
   $('#ghInfo').textContent = !gh.configured ? 'No GitHub token yet → WiFi / bot setup (fine-grained token, Contents read+write on ' + (gh.repo || 'the repo') + ').' :
     `${gh.repo} @ ${gh.branch} · last push ${gh.last_ok_ago_ms ? fmtDur(gh.last_ok_ago_ms) + ' ago' : 'never'}` +
     `${gh.backlog > 0 ? ' · ' + gh.backlog + ' waiting' : ''}${gh.last_error ? ' · ❌ ' + gh.last_error : gh.last_message ? ' · “' + gh.last_message + '”' : ''}`;
-  $('#sysInfo').textContent = `IP ${net.ip} · heap ${(s.heap / 1024).toFixed(0)} kB · PSRAM ${(s.psram / 1048576).toFixed(1)} MB · captures ${s.fs.captures} (${s.fs.labelled} labelled, ${s.fs.raw}/${s.fs.raw_max} waveforms) · dataset ${(s.fs.used / 1024).toFixed(0)} / ${(s.fs.total / 1024).toFixed(0)} kB · gravity [${s.sensor.gravity.map(v => v.toFixed(2)).join(', ')}] g`;
+  $('#sysInfo').textContent = `IP ${net.ip} · heap ${(s.heap / 1024).toFixed(0)} kB · PSRAM ${(s.psram / 1048576).toFixed(1)} MB · captures ${s.fs.captures} (${s.fs.labelled} labelled, ${s.fs.raw} waveforms, ${s.fs.raw_kb}/${s.fs.raw_budget_kb} kB) · dataset ${(s.fs.used / 1024).toFixed(0)} / ${(s.fs.total / 1024).toFixed(0)} kB · gravity [${s.sensor.gravity.map(v => v.toFixed(2)).join(', ')}] g`;
   if (!wsOpen) { live.thr = s.sensor.threshold_g * 1000; live.base = s.sensor.baseline_g * 1000; }
   updateLab(s.lab.armed_label, s.lab.remaining_ms);
 }

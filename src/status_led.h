@@ -45,8 +45,9 @@ inline void flashColor(uint8_t r, uint8_t g, uint8_t b, uint32_t ms, uint16_t bl
 
 inline void flashEvent(int cls, bool snap) {
   if (snap) return flashColor(60, 0, 0, 3000, 150);
-  static const uint8_t col[5][3] = {{60, 0, 0}, {50, 18, 0}, {0, 10, 50}, {45, 35, 0}, {30, 30, 30}};
-  if (cls >= 0 && cls < 5) flashColor(col[cls][0], col[cls][1], col[cls][2], 400);
+  // snap, bump, footstep, mouse, other, armed-trap (pink)
+  static const uint8_t col[6][3] = {{60, 0, 0}, {50, 18, 0}, {0, 10, 50}, {45, 35, 0}, {30, 30, 30}, {60, 8, 22}};
+  if (cls >= 0 && cls < 6) flashColor(col[cls][0], col[cls][1], col[cls][2], 400);
   else flashColor(25, 0, 45, 400);  // custom class
 }
 inline void flashLearned() { flashColor(0, 45, 0, 600, 150); }
