@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "ad33b91",
+   "subject": "👂 Ze philosopher learns to listen to his own mouth",
+   "file": "voice/ad33b91.ogg",
+   "ts": 1794141563
+  },
+  {
    "sha": "0cfed09",
    "subject": "🩺 Ze trap was dying every 45 seconds, and it told everybody",
    "file": "voice/0cfed09.ogg",
@@ -13,7 +19,7 @@
    "ts": 1794102412
   }
  ],
- "updated": 1794137350,
+ "updated": 1794141632,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
