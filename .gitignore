@@ -1,5 +1,8 @@
 # PlatformIO build artifacts & IDE files
 .pio/
+.pio
+.cache/
+.dummy
 .vscode/
 compile_commands.json
 platformio_local*.ini
