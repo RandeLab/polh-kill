@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "4649420",
+   "subject": "🤝 Ze trap gets a second father",
+   "file": "voice/4649420.ogg",
+   "ts": 1794344700
+  },
+  {
    "sha": "5153d96",
    "subject": "🏷️ Ze classes are born where they are needed",
    "file": "voice/5153d96.ogg",
@@ -83,15 +89,9 @@
    "subject": "🩺 Ze trap was dying every 45 seconds, and it told everybody",
    "file": "voice/0cfed09.ogg",
    "ts": 1794137301
-  },
-  {
-   "sha": "a9e91c0",
-   "subject": "🎙 Ze philosopher learns to speak, finally with ze right sounds",
-   "file": "voice/a9e91c0.ogg",
-   "ts": 1794102412
   }
  ],
- "updated": 1794162477,
+ "updated": 1794344763,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
