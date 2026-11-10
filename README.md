@@ -134,6 +134,8 @@ All details: [docs/led.md](docs/led.md)
 
 ### 🗂️ Repo
 
+Want to work on it? Start with [docs/HANDOFF.md](docs/HANDOFF.md): state, data paths, rules, how to test.
+
 ```
 src/        firmware (detector, features, classifier, dataset, net, telegram, web)
 data/       web UI (LittleFS): index.html, app.js, style.css, mock.js
