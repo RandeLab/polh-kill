@@ -44,6 +44,7 @@ uint32_t add(const EventWindow& w, const float feat[NFEAT], int label, int predC
 bool relabel(uint32_t id, int label);
 bool setFlags(uint32_t id, uint8_t set, uint8_t clear);
 bool remove(uint32_t id);
+size_t purgeUnlabelled();
 void wipe();
 // iterate over all captures that are not deleted (labelled and unlabelled)
 void forEach(const std::function<void(const SampleRec&)>& fn);

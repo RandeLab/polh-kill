@@ -37,7 +37,7 @@ const DE = {
   labStep2: 'Aufgezeichnet. War es das?', keepAs: 'behalten als …', discard: '🗑 verwerfen', features: 'Merkmale',
   labStep3: 'Was das Modell weiss', goal: 'Ziel: mindestens 10 Beispiele pro Klasse. Schnapper aus verschiedenen Positionen = besser.',
   qualityTitle: 'Modellqualität', qualitySub: 'Leave-one-out-Test auf dem Gerät', refresh: '↻ aktualisieren',
-  datasetTitle: 'Datensatz', exportCsv: '⬇ CSV exportieren', wipe: 'alles löschen', detTitle: 'Erkennung',
+  datasetTitle: 'Datensatz', exportCsv: '⬇ CSV exportieren', purgeUnlabelled: '🧹 ungelabelte löschen', wipe: 'alles löschen', detTitle: 'Erkennung',
   kSigma: 'Auslösung: Rauschen + k·σ', minG: 'minimale Auslösung (g)', snapG: 'Schnapp-Spitze bei leerem Modell (g)',
   alertP: 'Alarm ab Schnapp-Wahrscheinlichkeit', unsureP: 'nach Label fragen ab', armedLbl: 'scharf (Telegram-Alarme)',
   notifyUnsure: 'bei Unsicherheit auf Telegram fragen', daily: 'Tagebuch jeden Tag um 20:00', voiceLbl: '🎙 Sprachnachrichten: der Philosoph liest Commits vor', tgTest: 'Testnachricht senden',
@@ -46,6 +46,7 @@ const DE = {
   waiting: 'Warte auf', doItNow: 'jetzt machen!', kept: 'gespeichert', discarded: 'verworfen', saved: 'gespeichert',
   interview: '▶ Interview anhören', ghSub: 'jede Aufnahme, veröffentlicht', ghEvery: 'pushen alle (Minuten)', ghPush: 'jetzt pushen', ghOpen: 'Seite öffnen', newClass: '＋ neue Klasse', addClass: 'Klasse anlegen', newClassOpt: '＋ neue Klasse …', createKeep: '＋ anlegen & behalten',
   classRules: 'Name: a-z, 0-9, - und _ (max. 16). Löschen geht, solange die Klasse keine Beispiele hat.',
+  confirmPurge: 'Wirklich alle ungelabelten Aufnahmen löschen? Gelabelte Trainingsdaten bleiben erhalten.',
   confirmWipe: 'Wirklich den ganzen Datensatz löschen?', confirmReboot: 'Neu starten?', confirmPortal: 'Hotspot öffnen?',
 };
 let lang = localGet('polh-lang') || 'en';
@@ -1224,6 +1225,17 @@ function init() {
   $('#btnDiscard').onclick = discardCandidate;
   $('#btnLoo').onclick = loadModel;
   $('#btnDsRefresh').onclick = loadDataset;
+  $('#btnPurgeUnlabelled').onclick = async () => {
+    if (!confirm(t('confirmPurge', 'Really delete all unlabelled recordings? Labelled training samples will remain intact.'))) return;
+    try {
+      const res = await api.post('/api/samples/purge-unlabelled');
+      toast(`🧹 ${res.purged ?? 0} unlabelled deleted`);
+      loadDataset();
+      loadStatus();
+    } catch (e) {
+      toast('❌ ' + e.message);
+    }
+  };
   $('#btnWipe').onclick = async () => { if (confirm(t('confirmWipe', 'Really wipe the whole dataset?'))) { await api.post('/api/model/wipe'); loadDataset(); loadStatus(); } };
   $('#btnGhPush').onclick = async () => { try { await api.post('/api/github/push'); toast('🐙 pushing…'); } catch (e) { toast('❌ ' + e.message); } };
   $('#btnTgTest').onclick = async () => { try { await api.post('/api/telegram/test'); toast('✈️ sent'); } catch (e) { toast('❌ ' + e.message); } };

@@ -266,6 +266,14 @@ void routesLab() {
   server.on("/api/samples/delete", HTTP_POST, [](AsyncWebServerRequest* r) {
     app::deleteSample(param(r, "id").toInt()) ? ok(r) : fail(r, "id");
   });
+  server.on("/api/samples/purge-unlabelled", HTTP_POST, [](AsyncWebServerRequest* r) {
+    if (!authed(r)) return;
+    const size_t n = app::purgeUnlabelledSamples();
+    JsonDocument d;
+    d["ok"] = true;
+    d["purged"] = n;
+    sendJson(r, d);
+  });
   server.on("/api/model", HTTP_GET, [](AsyncWebServerRequest* r) {
     JsonDocument d;
     app::modelToJson(d.to<JsonObject>());

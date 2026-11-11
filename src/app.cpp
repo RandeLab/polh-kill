@@ -248,6 +248,17 @@ bool deleteSample(uint32_t sampleId) {
   return true;
 }
 
+size_t purgeUnlabelledSamples() {
+  Guard g;
+  const size_t n = dataset::purgeUnlabelled();
+  for (int i = 0; i < recentN; i++) {
+    if (recent[i].storedLabel == -1) {
+      recent[i].sampleId = 0;
+    }
+  }
+  return n;
+}
+
 // Delete a custom class. Only allowed while it has no samples; samples of
 // classes above it move down one index so their labels stay correct.
 bool deleteClass(int idx, String& err) {

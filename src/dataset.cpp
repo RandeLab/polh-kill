@@ -188,11 +188,46 @@ bool remove(uint32_t id) {
   bool ok = patchRecord(id, [](SampleRec& r) { r.label = LABEL_DELETED; r.flags &= ~FLAG_RAW; });
   if (ok) {
     dataFS.remove(rawPath(id));
-    for (auto it = rawIds.begin(); it != rawIds.end(); ++it)
-      if (*it == id) { rawIds.erase(it); break; }
+    for (size_t i = 0; i < rawIds.size(); i++) {
+      if (rawIds[i] == id) {
+        rawBlocks -= rawBlk[i];
+        rawIds.erase(rawIds.begin() + i);
+        rawBlk.erase(rawBlk.begin() + i);
+        break;
+      }
+    }
     if (live) live--;
   }
   return ok;
+}
+
+size_t purgeUnlabelled() {
+  File f = dataFS.open(INDEX, "r+");
+  if (!f) return 0;
+  size_t purged = 0;
+  SampleRec rec;
+  for (size_t pos = 0; f.seek(pos) && f.read((uint8_t*)&rec, sizeof(rec)) == sizeof(rec); pos += sizeof(rec)) {
+    if (rec.label == LABEL_NONE) {
+      rec.label = LABEL_DELETED;
+      rec.flags &= ~FLAG_RAW;
+      f.seek(pos);
+      f.write((const uint8_t*)&rec, sizeof(rec));
+      dataFS.remove(rawPath(rec.id));
+      for (size_t i = 0; i < rawIds.size(); i++) {
+        if (rawIds[i] == rec.id) {
+          rawBlocks -= rawBlk[i];
+          rawIds.erase(rawIds.begin() + i);
+          rawBlk.erase(rawBlk.begin() + i);
+          break;
+        }
+      }
+      if (live) live--;
+      purged++;
+      if (purged % 8 == 0) vTaskDelay(1);
+    }
+  }
+  f.close();
+  return purged;
 }
 
 void wipe() {
