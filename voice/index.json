@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "4ee4058",
+   "subject": "🧠 Revealing ze model's true confidence, not just ze absence of a snap",
+   "file": "voice/4ee4058.ogg",
+   "ts": 1794418570
+  },
+  {
    "sha": "63acad6",
    "subject": "🗑 Deleting arbitrary categories from ze symbolic order",
    "file": "voice/63acad6.ogg",
@@ -83,15 +89,9 @@
    "subject": "🗳️ Round one: ze people have spoken, and they said 👎",
    "file": "voice/0793d4b.ogg",
    "ts": 1794155235
-  },
-  {
-   "sha": "f6d8e6c",
-   "subject": "🗳️ Ze philosopher goes on trial",
-   "file": "voice/f6d8e6c.ogg",
-   "ts": 1794154911
   }
  ],
- "updated": 1794417515,
+ "updated": 1794418615,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
