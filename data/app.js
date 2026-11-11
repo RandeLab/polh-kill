@@ -45,8 +45,13 @@ const DE = {
   portal: 'Hotspot öffnen', reboot: 'neu starten', noEvents: 'Noch nichts passiert. Absolut nichts.',
   waiting: 'Warte auf', doItNow: 'jetzt machen!', kept: 'gespeichert', discarded: 'verworfen', saved: 'gespeichert',
   interview: '▶ Interview anhören', ghSub: 'jede Aufnahme, veröffentlicht', ghEvery: 'pushen alle (Minuten)', ghPush: 'jetzt pushen', ghOpen: 'Seite öffnen', newClass: '＋ neue Klasse', addClass: 'Klasse anlegen', newClassOpt: '＋ neue Klasse …', createKeep: '＋ anlegen & behalten',
-  classRules: 'Name: a-z, 0-9, - und _ (max. 16). Löschen geht, solange die Klasse keine Beispiele hat.',
+  classRules: 'Name: a-z, 0-9, - und _ (max. 16). Eine Kategorie löschen entfernt sie und ihre Trainingsdaten.',
   confirmPurge: 'Wirklich alle ungelabelten Aufnahmen löschen? Gelabelte Trainingsdaten bleiben erhalten.',
+  confirmDeleteCat1: 'Kategorie “{name}” löschen?',
+  confirmDeleteCat1WithSamples: 'Kategorie “{name}” ({n} Beispiele) löschen?',
+  confirmDeleteCat2: '⚠️ ZWEITE BESTÄTIGUNG: Wirklich ganz sicher? Kategorie “{name}” wird gelöscht.',
+  confirmDeleteCat2WithSamples: '⚠️ ZWEITE BESTÄTIGUNG: Wirklich ganz sicher? Kategorie “{name}” UND ALLE {n} BEISPIELE im Datensatz werden gelöscht!',
+  snapCantDelete: 'Die Schnapp-Klasse (snap) kann nicht gelöscht werden.',
   confirmWipe: 'Wirklich den ganzen Datensatz löschen?', confirmReboot: 'Neu starten?', confirmPortal: 'Hotspot öffnen?',
 };
 let lang = localGet('polh-lang') || 'en';
@@ -938,12 +943,9 @@ function renderLabChips() {
   plus.onclick = () => { $('#classForm').classList.toggle('hide'); $('#newName').focus(); };
   box.append(plus);
   const cl = $('#customList'); cl.innerHTML = '';
-  classInfo.filter(c => !c.builtin).forEach(c => {
-    const b = el('button', { className: 'chip', textContent: `${c.emoji} ${c.name} (${c.n}) ✕`, title: 'delete' });
-    b.onclick = async () => {
-      if (!confirm(`${c.emoji} ${c.name} ✕ ?`)) return;
-      try { await api.post('/api/classes/delete', { name: c.name }); loadClasses(); } catch (e) { toast('❌ ' + e.message); }
-    };
+  classInfo.filter(c => c.name !== 'snap').forEach(c => {
+    const b = el('button', { className: 'chip', textContent: `${c.emoji} ${c.name} (${c.n}) ✕`, title: `delete ${c.name}` });
+    b.onclick = () => deleteCategory(c);
     cl.append(b);
   });
   const sel = $('#selKeepAs'), keep = sel.value; sel.innerHTML = '';
@@ -951,6 +953,37 @@ function renderLabChips() {
   sel.append(el('option', { value: '__new', textContent: t('newClassOpt', '＋ new class …') }));
   if (keep && keep !== '__new' && CLASSES.includes(keep)) sel.value = keep;
 }
+async function deleteCategory(c) {
+  if (c.name === 'snap') {
+    alert(t('snapCantDelete', 'The snap class cannot be deleted.'));
+    return;
+  }
+  // FIRST QUESTION
+  const q1 = (c.n > 0
+    ? t('confirmDeleteCat1WithSamples', `Delete category “${c.emoji || ''} ${c.name}” (${c.n} sample${c.n > 1 ? 's' : ''})?`)
+    : t('confirmDeleteCat1', `Delete category “${c.emoji || ''} ${c.name}”?`))
+    .replace('{name}', c.name).replace('{n}', c.n);
+  if (!confirm(q1)) return;
+
+  // SECOND QUESTION (ASK TWICE!)
+  const q2 = (c.n > 0
+    ? t('confirmDeleteCat2WithSamples', `⚠️ SECOND CONFIRMATION: Are you REALLY sure? This will delete category “${c.name}” AND PERMANENTLY ERASE all ${c.n} of its samples from the dataset!`)
+    : t('confirmDeleteCat2', `⚠️ SECOND CONFIRMATION: Are you REALLY sure you want to delete category “${c.name}”?`))
+    .replace('{name}', c.name).replace('{n}', c.n);
+  if (!confirm(q2)) return;
+
+  try {
+    await api.post('/api/classes/delete', { name: c.name });
+    toast(`🗑 Category “${c.name}” deleted`);
+    loadClasses();
+    loadModel();
+    loadDataset();
+    loadStatus();
+  } catch (e) {
+    toast('❌ ' + e.message);
+  }
+}
+
 function updateLab(armedLabel, remainingMs) {
   const armed = !!armedLabel && remainingMs > 0;
   $('#labIdle').classList.toggle('hide', armed);
@@ -999,12 +1032,27 @@ async function loadModel() {
   let m;
   try { m = await api.get('/api/model'); } catch (e) { return; }
   const tb = $('#classTable');
-  tb.innerHTML = '<tr><th>class</th><th class="num">n</th><th style="width:40%"></th><th class="num">peak (g)</th><th class="num">duration</th></tr>';
+  tb.innerHTML = '<tr><th>class</th><th class="num">n</th><th style="width:35%"></th><th class="num">peak (g)</th><th class="num">duration</th><th></th></tr>';
   const maxN = Math.max(10, ...m.classes.map(c => c.n));
   m.classes.forEach(c => {
     const peak = c.n ? Math.pow(10, c.mean[0]).toFixed(2) : '–';
     const dur = c.n ? c.mean[3].toFixed(0) + ' ms' : '–';
-    tb.append(el('tr', {}, `<td>${c.emoji} ${c.name}</td><td class="num">${c.n}</td><td><div class="bar"><i style="width:${c.n / maxN * 100}%"></i></div></td><td class="num">${peak}</td><td class="num">${dur}</td>`));
+    const tr = el('tr');
+    tr.append(
+      el('td', {}, `${c.emoji} ${c.name}`),
+      el('td', { className: 'num', textContent: c.n }),
+      el('td', {}, `<div class="bar"><i style="width:${c.n / maxN * 100}%"></i></div>`),
+      el('td', { className: 'num', textContent: peak }),
+      el('td', { className: 'num', textContent: dur })
+    );
+    const tdAct = el('td');
+    if (c.name !== 'snap') {
+      const del = el('button', { className: 'small danger', textContent: '✕', title: `delete ${c.name}` });
+      del.onclick = () => deleteCategory(c);
+      tdAct.append(del);
+    }
+    tr.append(tdAct);
+    tb.append(tr);
   });
   $('#modelSummary').textContent = `${m.total} samples`;
   loadClasses();

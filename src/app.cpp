@@ -259,22 +259,56 @@ size_t purgeUnlabelledSamples() {
   return n;
 }
 
-// Delete a custom class. Only allowed while it has no samples; samples of
-// classes above it move down one index so their labels stay correct.
+// Delete a class. Removes all of its samples from the dataset, shifts
+// higher class labels down, updates recent events, and rebuilds the model.
 bool deleteClass(int idx, String& err) {
   Guard g;
-  if (idx < builtinClassCount() || idx >= classCount()) { err = "built-in classes cannot be deleted"; return false; }
-  if (clf.count(idx) > 0) { err = "class still has samples - relabel or delete them first"; return false; }
-  std::vector<SampleRec> move;
-  dataset::forEach([&](const SampleRec& r) { if (r.label > idx && r.label < LABEL_NONE) move.push_back(r); });
-  for (auto& r : move) dataset::relabel(r.id, r.label - 1);
-  for (int i = 0; i < recentN; i++) {
-    if (recent[i].storedLabel > idx) recent[i].storedLabel--;
-    if (recent[i].testLabel > idx) recent[i].testLabel--;
-    if (recent[i].pred.cls >= idx) recent[i].pred.cls = 0;
+  if (idx <= 0 || idx >= classCount()) {
+    err = (idx == 0) ? "snap class cannot be deleted" : "class not found";
+    return false;
   }
-  if (armedLabel >= idx) armedLabel = -1;
+
+  // 1. Delete all samples labelled with this class
+  std::vector<uint32_t> toDelete;
+  dataset::forEach([&](const SampleRec& r) {
+    if (r.label == idx) toDelete.push_back(r.id);
+  });
+  for (uint32_t id : toDelete) {
+    dataset::remove(id);
+  }
+
+  // 2. Shift all labels and predictions above idx down by 1 in the dataset
+  dataset::shiftLabels(idx + 1, -1);
+
+  // 3. Update recent events in memory
+  for (int i = 0; i < recentN; i++) {
+    if (recent[i].storedLabel == idx) {
+      recent[i].storedLabel = -1;
+      recent[i].sampleId = 0;
+    } else if (recent[i].storedLabel > idx) {
+      recent[i].storedLabel--;
+    }
+
+    if (recent[i].testLabel == idx) {
+      recent[i].testLabel = -1;
+    } else if (recent[i].testLabel > idx) {
+      recent[i].testLabel--;
+    }
+
+    if (recent[i].pred.cls == idx) {
+      recent[i].pred.cls = 0;
+    } else if (recent[i].pred.cls > idx) {
+      recent[i].pred.cls--;
+    }
+  }
+
+  if (armedLabel == idx) armedLabel = -1;
+  else if (armedLabel > idx) armedLabel--;
+
+  // 4. Remove class from registry (saves to /classes.txt)
   if (!classRemove(idx, err)) return false;
+
+  // 5. Rebuild model with remaining classes and samples
   rebuildModel();
   return true;
 }

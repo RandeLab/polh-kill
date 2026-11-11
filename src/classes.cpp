@@ -22,8 +22,8 @@ volatile int count = NBUILTIN;
 void save() {
   File f = dataFS.open(FILE_PATH, "w");
   if (!f) return;
-  f.printf("#builtin %d\n", NBUILTIN);  // lets a later firmware with more built-ins shift ze labels
-  for (int i = NBUILTIN; i < count; i++) f.printf("%s %s\n", defs[i].name, defs[i].emoji);
+  f.printf("#classes_v2 %d\n", count);
+  for (int i = 0; i < count; i++) f.printf("%s %s\n", defs[i].name, defs[i].emoji);
   f.close();
 }
 
@@ -44,9 +44,35 @@ bool validEmoji(const String& e) {
 }  // namespace
 
 void classesBegin() {
+  File f = dataFS.open(FILE_PATH, "r");
+  if (f) {
+    String first = f.readStringUntil('\n');
+    first.trim();
+    if (first.startsWith("#classes_v2 ")) {
+      count = 0;
+      while (f.available() && count < MAX_CLASSES) {
+        String line = f.readStringUntil('\n');
+        line.trim();
+        const int sp = line.indexOf(' ');
+        if (sp <= 0) continue;
+        const String n = line.substring(0, sp), e = line.substring(sp + 1);
+        if (!validName(n) || !validEmoji(e)) continue;
+        strlcpy(defs[count].name, n.c_str(), sizeof(defs[count].name));
+        strlcpy(defs[count].emoji, e.c_str(), sizeof(defs[count].emoji));
+        count++;
+      }
+      f.close();
+      if (count > 0) {
+        Serial.printf("[Classes 🏷️] loaded %d classes (v2)\n", (int)count);
+        return;
+      }
+    }
+    f.close();
+  }
+
   for (int i = 0; i < NBUILTIN; i++) defs[i] = BUILTIN[i];
   count = NBUILTIN;
-  File f = dataFS.open(FILE_PATH, "r");
+  f = dataFS.open(FILE_PATH, "r");
   if (!f) return;
   int fileBuiltins = 5;  // files without a header were written when there were 5 built-ins
   while (f.available() && count < MAX_CLASSES) {
@@ -75,7 +101,7 @@ void classesBegin() {
 }
 
 int classCount() { return count; }
-int builtinClassCount() { return NBUILTIN; }
+int builtinClassCount() { return 1; }  // snap is index 0 and permanent
 const char* className(int c) { return (c >= 0 && c < count) ? defs[c].name : "?"; }
 const char* classEmoji(int c) { return (c >= 0 && c < count) ? defs[c].emoji : "❔"; }
 
@@ -102,7 +128,7 @@ int classAdd(String name, String emoji, String& err) {
 
 // caller (app::deleteClass) has already moved the labels of higher classes down
 bool classRemove(int idx, String& err) {
-  if (idx < NBUILTIN || idx >= count) { err = "built-in classes cannot be deleted"; return false; }
+  if (idx <= 0 || idx >= count) { err = (idx == 0) ? "snap class cannot be deleted" : "class not found"; return false; }
   for (int i = idx; i < count - 1; i++) defs[i] = defs[i + 1];
   count = count - 1;
   save();
