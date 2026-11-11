@@ -880,9 +880,11 @@ function renderEvents() {
     const isSnap = e.snap_p >= (cfg ? cfg.alert_p : 0.7);
     const card = el('div', { className: 'event' + (isSnap ? ' snap' : '') + (e.candidate ? ' lab' : '') });
     const when = e.ts ? new Date(e.ts * 1000).toLocaleTimeString() : fmtDur(e.ago_ms) + ' ago';
+    const conf = e.conf != null ? e.conf : (e.probs && e.cls && e.probs[e.cls] != null ? e.probs[e.cls] : e.snap_p);
+    const snapBadge = (e.cls !== 'snap' && e.snap_p > 0.05) ? `<span class="mono">snap ${pct(e.snap_p)}</span>` : '';
     card.append(el('div', { className: 'head' },
       `<span class="cls">${EMOJI[e.cls]} ${e.cls}</span><span class="mono">#${e.id}</span><span class="muted">${when}</span>` +
-      `<span class="mono">peak ${e.peak_g.toFixed(2)} g</span><span class="mono">snap ${pct(e.snap_p)}</span><span class="muted">${e.method}</span>` +
+      `<span class="mono">peak ${e.peak_g.toFixed(2)} g</span><span class="mono">${pct(conf)} conf</span>${snapBadge}<span class="muted">${e.method}</span>` +
       (e.stored_label ? `<span class="pill ok">✓ ${e.stored_label}</span>` : '')));
     const row = el('div', { className: 'row', style: 'margin-top:6px' });
     CLASSES.forEach(c => {
@@ -1003,7 +1005,8 @@ async function showCandidate(e) {
   $('#candPanel').classList.remove('hide');
   $('#btnKeep').textContent = `✅ keep as ${EMOJI[e.test_label]} ${e.test_label}`;
   $('#selKeepAs').value = e.test_label;
-  $('#candPred').textContent = `#${e.id} · peak ${e.peak_g.toFixed(2)} g · model says ${e.cls} (snap ${pct(e.snap_p)}, ${e.method})`;
+  const conf = e.conf != null ? e.conf : (e.probs && e.cls && e.probs[e.cls] != null ? e.probs[e.cls] : e.snap_p);
+  $('#candPred').textContent = `#${e.id} · peak ${e.peak_g.toFixed(2)} g · model says ${e.cls} (${pct(conf)}, snap ${pct(e.snap_p)}, ${e.method})`;
   const ft = $('#candFeat'); ft.innerHTML = '';
   Object.entries(e.features).forEach(([k, v]) => ft.append(el('tr', {}, `<td>${k}</td><td class="num">${v.toFixed(3)}</td>`)));
   try { drawWindow($('#cvCand'), await api.get('/api/window?event=' + e.id)); } catch (err) { /* evicted */ }
@@ -1080,7 +1083,9 @@ async function loadDataset() {
     sel.onchange = async () => { await api.post('/api/samples/relabel', { id: s.id, label: sel.value }); toast(`#${s.id} → ${sel.value}`); };
     tr.append(el('td', { className: 'mono', textContent: s.id }), el('td', { textContent: s.ts ? new Date(s.ts * 1000).toLocaleString() : '–' }));
     const tdSel = el('td'); tdSel.append(sel); tr.append(tdSel);
-    tr.append(el('td', { textContent: s.pred ? `${EMOJI[s.pred] || '❔'} ${s.pred}${s.snap_p >= 0 ? ' · ' + pct(s.snap_p) : ''}` : '' }));
+    const confStr = s.conf != null ? pct(s.conf) : (s.snap_p >= 0 ? pct(s.snap_p) : '');
+    const snapExtra = (s.pred !== 'snap' && s.snap_p > 0.05) ? ` (snap ${pct(s.snap_p)})` : '';
+    tr.append(el('td', { textContent: s.pred ? `${EMOJI[s.pred] || '❔'} ${s.pred} · ${confStr}${snapExtra}` : '–' }));
     tr.append(el('td', { className: 'num', textContent: s.peak_g.toFixed(2) + (s.published ? ' 🐙' : '') }));
     const act = el('td');
     if (s.raw) { const b = el('button', { className: 'small', textContent: '📈' }); b.onclick = async () => drawWindow($('#cvSample'), await api.get('/api/window?sample=' + s.id)); act.append(b); }

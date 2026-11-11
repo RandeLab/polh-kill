@@ -358,6 +358,7 @@ void eventToJson(const RecentEvent& e, JsonObject o) {
   o["ago_ms"] = millis() - e.win->uptimeMs;
   o["peak_g"] = powf(10, e.feat[F_PEAK_LOG]);
   o["cls"] = className(e.pred.cls);
+  o["conf"] = (e.pred.cls >= 0 && e.pred.cls < classCount()) ? e.pred.probs[e.pred.cls] : e.pred.snapProb;
   o["snap_p"] = e.pred.snapProb;
   o["method"] = METHOD_NAMES[e.pred.method];
   o["candidate"] = e.candidate;

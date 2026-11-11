@@ -247,10 +247,12 @@ void routesLab() {
     bool first = true;
     app::Guard g;
     dataset::forEach([&](const SampleRec& rec) {
-      s->printf("%s{\"id\":%u,\"ts\":%u,\"label\":\"%s\",\"pred\":\"%s\",\"snap_p\":%.3f,\"raw\":%s,"
+      const auto p = app::model().predict(rec.feat);
+      const float conf = (p.cls >= 0 && p.cls < classCount()) ? p.probs[p.cls] : 0.0f;
+      s->printf("%s{\"id\":%u,\"ts\":%u,\"label\":\"%s\",\"pred\":\"%s\",\"conf\":%.3f,\"snap_p\":%.3f,\"raw\":%s,"
                 "\"published\":%s,\"peak_g\":%.3f}",
                 first ? "" : ",", (unsigned)rec.id, (unsigned)rec.ts,
-                rec.label < classCount() ? className(rec.label) : "", className(rec.predCls), rec.snapP,
+                rec.label < classCount() ? className(rec.label) : "", className(p.cls), conf, p.snapProb,
                 (rec.flags & FLAG_RAW) ? "true" : "false", (rec.flags & FLAG_PUBLISHED) ? "true" : "false",
                 powf(10, rec.feat[F_PEAK_LOG]));
       first = false;
