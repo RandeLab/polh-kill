@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "63acad6",
+   "subject": "🗑 Deleting arbitrary categories from ze symbolic order",
+   "file": "voice/63acad6.ogg",
+   "ts": 1794417377
+  },
+  {
    "sha": "84c2f74",
    "subject": "🧹 Purging ze unlabelled noise from ze ontology",
    "file": "voice/84c2f74.ogg",
@@ -83,15 +89,9 @@
    "subject": "🗳️ Ze philosopher goes on trial",
    "file": "voice/f6d8e6c.ogg",
    "ts": 1794154911
-  },
-  {
-   "sha": "740208a",
-   "subject": "🧹 Ze trap forgets everything, and learns to be judged",
-   "file": "voice/740208a.ogg",
-   "ts": 1794154679
   }
  ],
- "updated": 1794391068,
+ "updated": 1794417515,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
