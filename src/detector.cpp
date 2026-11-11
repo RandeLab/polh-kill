@@ -34,19 +34,24 @@ void Detector::begin(uint16_t rateHz) {
   stateLeft_ = (uint32_t)rate_ * WARMUP_MS / 1000;
   state_ = WARMUP;
   if (!eventQueue) eventQueue = xQueueCreate(4, sizeof(EventWindow*));
-  if (!liveQueue) liveQueue = xQueueCreate(256, sizeof(float));
+  if (!liveQueue) liveQueue = xQueueCreate(256, sizeof(LivePoint));
 }
 
 void Detector::push(const Sample& s) {
   count_++;
-  const bool frozen = (state_ == CAPTURE);
-  if (!frozen) {
+  if (state_ == WARMUP && count_ < rate_ / 4) {  // converge gravity fast at boot
+    g_[0] = s.x; g_[1] = s.y; g_[2] = s.z;
+    prev_[0] = s.x; prev_[1] = s.y; prev_[2] = s.z;
+  }
+  const float sx = s.x - prev_[0], sy = s.y - prev_[1], sz = s.z - prev_[2];
+  const float step = sqrtf(sx * sx + sy * sy + sz * sz);
+  prev_[0] = s.x; prev_[1] = s.y; prev_[2] = s.z;
+
+  // track gravity while not capturing an impulse (or if ze sensor is resting still at a new tilt)
+  if (state_ == WARMUP || (state_ != CAPTURE && step < 0.05f) || step < 0.015f) {
     g_[0] += (s.x - g_[0]) * alphaG_;
     g_[1] += (s.y - g_[1]) * alphaG_;
     g_[2] += (s.z - g_[2]) * alphaG_;
-  }
-  if (state_ == WARMUP && count_ < rate_ / 4) {  // converge gravity fast at boot
-    g_[0] = s.x; g_[1] = s.y; g_[2] = s.z;
   }
   const float dx = s.x - g_[0], dy = s.y - g_[1], dz = s.z - g_[2];
   const float dyn = sqrtf(dx * dx + dy * dy + dz * dz);
@@ -57,8 +62,8 @@ void Detector::push(const Sample& s) {
   r[2] = (int16_t)constrain(dz * 1000.0f, -32767.0f, 32767.0f);
   head_++;
 
-  // recursive noise floor: only learn while nothing is happening
-  if (state_ == IDLE || state_ == WARMUP) {
+  // recursive noise floor: only learn while nothing is happening (never fold impulses into baseline)
+  if (state_ == WARMUP || (state_ == IDLE && hits_ == 0 && dyn <= thr_)) {
     const float d = dyn - mean_;
     mean_ += d * alphaN_;
     var_ += (d * d - var_) * alphaN_;
@@ -71,11 +76,20 @@ void Detector::push(const Sample& s) {
   const float noiseThr = max((float)minG, mean_ + kSigma * sqrtf(var_));
   thr_ = max(noiseThr, echo_);
 
-  // live plot bucket
+  // live plot bucket: peak magnitude + signed peak per axis (mg)
   if (dyn > bucketMax_) bucketMax_ = dyn;
+  if (fabsf(dx) > fabsf(bucketDx_)) bucketDx_ = dx;
+  if (fabsf(dy) > fabsf(bucketDy_)) bucketDy_ = dy;
+  if (fabsf(dz) > fabsf(bucketDz_)) bucketDz_ = dz;
   if (--bucketLeft_ == 0) {
-    xQueueSend(liveQueue, &bucketMax_, 0);
-    bucketMax_ = 0;
+    LivePoint lp{
+        bucketMax_,
+        (int16_t)constrain(bucketDx_ * 1000.0f, -32767.0f, 32767.0f),
+        (int16_t)constrain(bucketDy_ * 1000.0f, -32767.0f, 32767.0f),
+        (int16_t)constrain(bucketDz_ * 1000.0f, -32767.0f, 32767.0f),
+    };
+    xQueueSend(liveQueue, &lp, 0);
+    bucketMax_ = bucketDx_ = bucketDy_ = bucketDz_ = 0;
     bucketLeft_ = bucketN_;
   }
 
@@ -84,11 +98,25 @@ void Detector::push(const Sample& s) {
       if (--stateLeft_ == 0) state_ = IDLE;
       break;
     case IDLE:
+      // require >= 3 samples above threshold within 15 ms so a single 1 ms glitch never triggers
       if (dyn > thr_) {
-        trigHead_ = head_ - 1;
-        captured_ = 0;
-        quiet_ = hangN_;
-        state_ = CAPTURE;
+        if (hits_ == 0) {
+          trigHead_ = head_ - 1;
+          hitWin_ = max<uint16_t>(3, rate_ * 15 / 1000);
+          capPeak_ = dyn;
+        } else if (dyn > capPeak_) {
+          capPeak_ = dyn;
+        }
+        if (++hits_ >= 3) {
+          captured_ = head_ - trigHead_;
+          quiet_ = hangN_;
+          hits_ = 0;
+          hitWin_ = 0;
+          state_ = CAPTURE;
+        }
+      } else if (hitWin_ > 0 && --hitWin_ == 0) {
+        hits_ = 0;
+        capPeak_ = 0;
       }
       break;
     case CAPTURE:

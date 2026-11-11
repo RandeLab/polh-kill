@@ -23,11 +23,26 @@ size_t totalCache = 0;        // partition size, read once at mount
 bool isLabel(uint8_t l) { return l != LABEL_NONE && l != LABEL_DELETED; }
 
 bool seekRecord(File& f, uint32_t id, SampleRec& rec, size_t& pos) {
+  if (id > 0) {
+    const size_t direct = (size_t)(id - 1) * sizeof(rec);
+    if (direct + sizeof(rec) <= indexBytes && f.seek(direct) &&
+        f.read((uint8_t*)&rec, sizeof(rec)) == sizeof(rec) && rec.id == id) {
+      pos = direct;
+      return true;
+    }
+  }
   f.seek(0);
   pos = 0;
-  while (f.read((uint8_t*)&rec, sizeof(rec)) == sizeof(rec)) {
-    if (rec.id == id) return true;
-    pos += sizeof(rec);
+  SampleRec buf[32];
+  while (const size_t got = f.read((uint8_t*)buf, sizeof(buf))) {
+    const size_t n = got / sizeof(rec);
+    for (size_t i = 0; i < n; i++) {
+      if (buf[i].id == id) {
+        rec = buf[i];
+        return true;
+      }
+      pos += sizeof(rec);
+    }
   }
   return false;
 }

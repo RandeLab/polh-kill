@@ -311,9 +311,12 @@ bool push() {
   if (code != 200) { lastErr = "ref update HTTP " + String(code); return false; }
 
   // ---- 6. remember what is online now
-  {
-    app::Guard g;
-    for (uint32_t id : done) dataset::setFlags(id, FLAG_PUBLISHED, 0);
+  for (uint32_t id : done) {
+    {
+      app::Guard g;
+      dataset::setFlags(id, FLAG_PUBLISHED, 0);
+    }
+    vTaskDelay(1);
   }
   pushedTotal += done.size();
   backlog = unpublished - (int)done.size();

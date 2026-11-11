@@ -18,6 +18,11 @@ struct EventWindow {
   int16_t xyz[WIN_MAX_SAMPLES][3];  // gravity removed, milli-g
 };
 
+struct LivePoint {
+  float mag;           // max dynamic g in 20 ms bucket
+  int16_t dx, dy, dz;  // signed peak dynamic accel per axis in bucket (mg)
+};
+
 EventWindow* allocWindow();
 void freeWindow(EventWindow* w);
 
@@ -43,7 +48,7 @@ class Detector {
   bool capturing() const { return state_ == CAPTURE; }
 
   QueueHandle_t eventQueue = nullptr;  // EventWindow*
-  QueueHandle_t liveQueue = nullptr;   // float: max dynamic g per live bucket
+  QueueHandle_t liveQueue = nullptr;   // LivePoint: max dynamic g + signed xyz peak per live bucket
 
  private:
   enum State { WARMUP, IDLE, CAPTURE, REFRACTORY };
@@ -59,8 +64,10 @@ class Detector {
   uint32_t head_ = 0, trigHead_ = 0;
   uint16_t preN_ = 0, postN_ = 0;
   uint32_t bucketN_ = 0, bucketLeft_ = 0;
-  float bucketMax_ = 0;
+  float bucketMax_ = 0, bucketDx_ = 0, bucketDy_ = 0, bucketDz_ = 0;
   float echo_ = 0, echoDecay_ = 0, capPeak_ = 0;  // echo guard (see detector.cpp)
+  uint16_t hits_ = 0, hitWin_ = 0;                // multi-sample trigger confirmation
+  float prev_[3] = {0, 0, 1};
   uint32_t captured_ = 0, quiet_ = 0, postMaxN_ = 0, hangN_ = 0, curPostN_ = 0;  // adaptive window
   uint32_t nextId_ = 1;
 };

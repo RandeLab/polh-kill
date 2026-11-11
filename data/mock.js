@@ -48,13 +48,21 @@
   }
   let burst = null;
   setInterval(() => {
-    const v = [];
+    const v = [], x = [], y = [], z = [];
     for (let i = 0; i < 5; i++) {
-      let x = 3 + Math.random() * 3;
-      if (burst && burst.left > 0) { x += burst.amp * Math.exp(-(40 - burst.left) / 6); burst.left--; }
-      v.push(+x.toFixed(1));
+      let m = 3 + Math.random() * 3;
+      if (burst && burst.left > 0) { m += burst.amp * Math.exp(-(40 - burst.left) / 6); burst.left--; }
+      const ang1 = Math.random() * Math.PI * 2, ang2 = (Math.random() - 0.5) * Math.PI;
+      v.push(+m.toFixed(1));
+      x.push(Math.round(m * Math.cos(ang1) * Math.cos(ang2)));
+      y.push(Math.round(m * Math.sin(ang1) * Math.cos(ang2)));
+      z.push(Math.round(m * Math.sin(ang2)));
     }
-    emit({ t: 'live', v, thr: 32, base: 4.2 });
+    const t = Date.now() / 1000;
+    const g = [0.15 * Math.sin(t * 0.5), -0.22 * Math.cos(t * 0.4), 0.96];
+    const ori = [+(Math.atan2(g[1], g[2]) * 180 / Math.PI).toFixed(1), +(Math.atan2(-g[0], Math.hypot(g[1], g[2])) * 180 / Math.PI).toFixed(1), +(18 * Math.sin(t * 0.25)).toFixed(1)];
+    const w = [+(Math.random() - 0.5).toFixed(1), +(Math.random() - 0.5).toFixed(1), +(Math.random() - 0.5).toFixed(1)];
+    emit({ t: 'live', v, x, y, z, g, w, ori, temp: 27.4, thr: 32, base: 4.2 });
   }, 100);
   setInterval(() => emit({ t: 'lab', armed_label: st.armed, remaining_ms: st.armed ? Math.max(0, 60000 - (Date.now() - st.armedAt)) : 0, samples: samples.length }), 1000);
 

@@ -14,6 +14,9 @@ class Accel {
   virtual size_t read(Sample* out, size_t maxCount) = 0;
   virtual uint16_t rateHz() const = 0;
   virtual const char* name() const = 0;
+  virtual float tempC() const { return NAN; }
+  virtual void gyro(float out[3]) const { out[0] = out[1] = out[2] = 0; }
+  virtual void orientation(float out[3]) const { out[0] = out[1] = out[2] = 0; }  // roll, pitch, yaw (deg)
   // For the later battery mode: configure the chip's activity interrupt so it
   // can wake the ESP from deep sleep. Default: not supported.
   virtual bool enableWakeOnMotion(float /*thresholdG*/) { return false; }

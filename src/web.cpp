@@ -471,17 +471,41 @@ void onWs(AsyncWebSocket*, AsyncWebSocketClient* c, AwsEventType type, void*, ui
 void liveTask(void*) {
   TickType_t wake = xTaskGetTickCount();
   for (;;) {
-    vTaskDelayUntil(&wake, pdMS_TO_TICKS(100));
-    float v;
-    String msg;
-    int n = 0;
-    while (detector.liveQueue && xQueueReceive(detector.liveQueue, &v, 0) == pdTRUE) {
-      msg += n++ ? "," : "";
-      msg += String(v * 1000.0f, 1);  // mg
+    vTaskDelayUntil(&wake, pdMS_TO_TICKS(50));
+    if (!detector.liveQueue) continue;
+    if (!ws.count()) {
+      xQueueReset(detector.liveQueue);
+      continue;
     }
-    if (n && ws.count() && ws.availableForWriteAll()) {
-      ws.textAll("{\"t\":\"live\",\"v\":[" + msg + "],\"thr\":" + String(detector.thresholdG() * 1000, 1) +
-                 ",\"base\":" + String(detector.baselineG() * 1000, 1) + "}");
+    if (!ws.availableForWriteAll() && uxQueueMessagesWaiting(detector.liveQueue) < 200) continue;
+    LivePoint lp;
+    String mv, mx, my, mz;
+    int n = 0;
+    while (xQueueReceive(detector.liveQueue, &lp, 0) == pdTRUE) {
+      if (n++) { mv += ","; mx += ","; my += ","; mz += ","; }
+      mv += String(lp.mag * 1000.0f, 1);
+      mx += String(lp.dx);
+      my += String(lp.dy);
+      mz += String(lp.dz);
+    }
+    if (n && ws.availableForWriteAll()) {
+      float w[3] = {0, 0, 0};
+      float ori[3] = {0, 0, 0};
+      float tC = NAN;
+      if (app::accel()) {
+        app::accel()->gyro(w);
+        app::accel()->orientation(ori);
+        tC = app::accel()->tempC();
+      }
+      String pkt = "{\"t\":\"live\",\"v\":[" + mv + "],\"x\":[" + mx + "],\"y\":[" + my + "],\"z\":[" + mz +
+                   "],\"thr\":" + String(detector.thresholdG() * 1000, 1) +
+                   ",\"base\":" + String(detector.baselineG() * 1000, 1) +
+                   ",\"g\":[" + String(detector.gx(), 4) + "," + String(detector.gy(), 4) + "," + String(detector.gz(), 4) + "]" +
+                   ",\"w\":[" + String(w[0], 1) + "," + String(w[1], 1) + "," + String(w[2], 1) + "]" +
+                   ",\"ori\":[" + String(ori[0], 1) + "," + String(ori[1], 1) + "," + String(ori[2], 1) + "]";
+      if (!isnan(tC)) pkt += ",\"temp\":" + String(tC, 1);
+      pkt += "}";
+      ws.textAll(pkt);
     }
   }
 }

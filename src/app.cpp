@@ -26,12 +26,14 @@ uint32_t armedAt = 0;
 
 void samplerTask(void*) {
   Sample buf[64];
+  TickType_t wake = xTaskGetTickCount();
   for (;;) {
     if (!sensorReady) {
       sensorReady = sensor->begin();
       if (sensorReady) {
         detector.begin(sensor->rateHz());
         Serial.printf("[Sensor ✅] %s @ %u Hz\n", sensor->name(), sensor->rateHz());
+        wake = xTaskGetTickCount();
       } else {
         Serial.println("[Sensor ❌] accelerometer not found, retrying in 5 s");
         vTaskDelay(pdMS_TO_TICKS(5000));
@@ -40,7 +42,11 @@ void samplerTask(void*) {
     }
     const size_t n = sensor->read(buf, 64);
     for (size_t i = 0; i < n; i++) detector.push(buf[i]);
-    if (n < 64) vTaskDelay(1);
+    if (n < 64) {
+      const TickType_t now = xTaskGetTickCount();
+      if ((TickType_t)(now - wake) > pdMS_TO_TICKS(2)) wake = now;
+      vTaskDelayUntil(&wake, pdMS_TO_TICKS(1));
+    }
   }
 }
 
@@ -345,6 +351,22 @@ void statusToJson(JsonObject o) {
   gv.add(detector.gx());
   gv.add(detector.gy());
   gv.add(detector.gz());
+  if (sensor) {
+    const float tC = sensor->tempC();
+    if (!isnan(tC)) s["temp_c"] = tC;
+    float w[3] = {0, 0, 0};
+    sensor->gyro(w);
+    JsonArray gy = s["gyro"].to<JsonArray>();
+    gy.add(w[0]);
+    gy.add(w[1]);
+    gy.add(w[2]);
+    float ori[3] = {0, 0, 0};
+    sensor->orientation(ori);
+    JsonArray oa = s["orientation"].to<JsonArray>();
+    oa.add(ori[0]);
+    oa.add(ori[1]);
+    oa.add(ori[2]);
+  }
 #ifdef POLH_SIM_SENSOR
   s["simulated"] = true;
 #endif

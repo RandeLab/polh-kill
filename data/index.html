@@ -37,9 +37,38 @@
     <div class="panel stat"><div class="v" id="sUptime">–</div><div class="l" data-i18n="uptime">uptime</div></div>
   </div>
   <div class="panel">
-    <h2><span data-i18n="liveTitle">Live vibration</span> <small data-i18n="liveSub">dynamic acceleration, gravity removed, last 10 s</small></h2>
-    <canvas id="cvLive" height="200"></canvas>
-    <div class="legend"><span><i style="background:var(--mag)"></i>|a| (mg)</span><span><i style="background:var(--red)"></i><span data-i18n="threshold">threshold</span></span><span><i style="background:var(--muted)"></i><span data-i18n="noiseFloor">noise floor</span></span></div>
+    <div class="live-head">
+      <h2><span data-i18n="liveTitle">Live vibration</span> <small data-i18n="liveSub">dynamic acceleration, gravity removed, last 10 s</small></h2>
+      <div class="view-switch">
+        <button class="small" id="btnViewClassic" data-i18n="viewClassic">📈 Classic</button>
+        <button class="small" id="btnViewFancy" data-i18n="viewFancy">🧊 3D &amp; Multi-Sensor</button>
+      </div>
+    </div>
+    <div id="liveClassic">
+      <canvas id="cvLive" height="200"></canvas>
+      <div class="legend"><span><i style="background:var(--mag)"></i>|a| (mg)</span><span><i style="background:var(--red)"></i><span data-i18n="threshold">threshold</span></span><span><i style="background:var(--muted)"></i><span data-i18n="noiseFloor">noise floor</span></span></div>
+    </div>
+    <div id="liveFancy" class="hide">
+      <div class="ms-bar">
+        <div class="ms-cell"><span class="k" data-i18n="msMagLbl">|a| · peak</span><span class="v" id="msMag">–</span></div>
+        <div class="ms-cell"><span class="k" data-i18n="msXyzLbl">Δx · Δy · Δz (mg)</span><span class="v" id="msXyz">–</span></div>
+        <div class="ms-cell"><span class="k" data-i18n="msGyroLbl">🌀 gyro ω (°/s)</span><span class="v" id="msGyro">–</span></div>
+        <div class="ms-cell"><span class="k" data-i18n="msTiltLbl">🧭 orientation (R · P · Y)</span><span class="v" id="msTilt">–</span></div>
+        <div class="ms-cell"><span class="k" data-i18n="msGravLbl">🧲 gravity (g)</span><span class="v" id="msGrav">–</span></div>
+        <div class="ms-cell"><span class="k" data-i18n="msTempLbl">🌡️ die temp</span><span class="v" id="msTemp">–</span></div>
+      </div>
+      <canvas id="cvFancy" height="440"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--x)"></i>x / ωx / roll</span>
+        <span><i style="background:var(--y)"></i>y / ωy / pitch</span>
+        <span><i style="background:var(--z)"></i>z / ωz / yaw</span>
+        <span><i style="background:var(--mag)"></i>|a| (mg)</span>
+        <span><i style="background:var(--red)"></i><span data-i18n="threshold">threshold</span></span>
+        <span><i style="background:var(--muted)"></i><span data-i18n="noiseFloor">noise floor</span></span>
+        <span class="spacer"></span>
+        <span class="muted" data-i18n="fancyHint">🖱️ drag 3D trap to orbit · double-click to reset</span>
+      </div>
+    </div>
   </div>
   <div class="panel hide" id="simPanel">
     <h2>🧪 <span data-i18n="simTitle">Simulator</span> <small data-i18n="simSub">no real sensor: inject a fake vibration</small></h2>
