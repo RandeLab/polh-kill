@@ -1,6 +1,12 @@
 {
  "commits": [
   {
+   "sha": "321124a",
+   "subject": "docs: comprehensive edge ML, 15-parameter fusion, and 4-tier data persistence architecture",
+   "file": "voice/321124a.ogg",
+   "ts": 1794389295
+  },
+  {
    "sha": "0618131",
    "subject": "feat: 15-parameter multi-sensor learning fusion and anti-flood impulse confirmation",
    "file": "voice/0618131.ogg",
@@ -83,15 +89,9 @@
    "subject": "🔔 Ze trap stops listening to its own echo",
    "file": "voice/8726a2c.ogg",
    "ts": 1794148971
-  },
-  {
-   "sha": "fc66aa7",
-   "subject": "🎙 Ze philosopher changes his passport",
-   "file": "voice/fc66aa7.ogg",
-   "ts": 1794144244
   }
  ],
- "updated": 1794357785,
+ "updated": 1794389339,
  "esp": {
   "hello": "voice/esp/hello.ogg",
   "snap_0": "voice/esp/snap_0.ogg",
