@@ -19,8 +19,8 @@ struct Settings {
   int ghEveryMin = 15;      // push interval; snaps are pushed right away
 
   // detection & alerts (set in the web UI)
-  float kSigma = 6.0f;
-  float minG = 0.05f;
+  float kSigma = 8.0f;
+  float minG = 0.20f;
   float snapPeakG = 1.0f;   // heuristic while the model is still empty
   float alertProb = 0.70f;  // >= -> "trap snapped" alert
   float unsureProb = 0.35f; // between unsure and alert -> ask for a label

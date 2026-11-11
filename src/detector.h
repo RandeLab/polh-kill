@@ -15,6 +15,8 @@ struct EventWindow {
   uint16_t n;           // samples in xyz
   uint16_t trig;        // index of the trigger sample
   float thresholdG;     // trigger threshold at that moment
+  float gyroPeakDps;    // peak angular velocity during event (deg/s)
+  float deltaTiltDeg;   // angular change in tilt orientation across event (deg)
   int16_t xyz[WIN_MAX_SAMPLES][3];  // gravity removed, milli-g
 };
 
@@ -32,8 +34,8 @@ class Detector {
   void push(const Sample& s);   // called from the sampler task only
 
   // tunables (written by settings, read by the sampler task)
-  volatile float kSigma = 6.0f;   // trigger at noise mean + k * sigma ...
-  volatile float minG = 0.05f;    // ... but never below this
+  volatile float kSigma = 8.0f;   // trigger at noise mean + k * sigma ...
+  volatile float minG = 0.15f;    // ... but never below this (raised so micro-bumps don't flood)
 
   // read-only telemetry
   float baselineG() const { return mean_; }
@@ -65,6 +67,8 @@ class Detector {
   uint16_t preN_ = 0, postN_ = 0;
   uint32_t bucketN_ = 0, bucketLeft_ = 0;
   float bucketMax_ = 0, bucketDx_ = 0, bucketDy_ = 0, bucketDz_ = 0;
+  float capGyroPeak_ = 0;
+  float trigOri_[3] = {};
   float echo_ = 0, echoDecay_ = 0, capPeak_ = 0;  // echo guard (see detector.cpp)
   uint16_t hits_ = 0, hitWin_ = 0;                // multi-sample trigger confirmation
   float prev_[3] = {0, 0, 1};

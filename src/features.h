@@ -16,6 +16,9 @@ enum Feature {
   F_AXIS_DOM,      // energy share of the strongest axis (1 = one axis only)
   F_SETTLE_MS,     // time from the peak until the envelope falls below 10 %
   F_PEAKS,         // number of separate peaks above 50 % of the maximum
+  F_GYRO_LOG,      // log10 peak rotational angular velocity [deg/s]
+  F_DELTA_TILT,    // orientation angle change between trigger and settle [deg]
+  F_AXIS_Z,        // energy share of the Z axis (perpendicular impact into base)
 };
 
 extern const char* const FEATURE_NAMES[NFEAT];

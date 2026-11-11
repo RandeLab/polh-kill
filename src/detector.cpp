@@ -1,6 +1,7 @@
 #include "detector.h"
 #include <esp_heap_caps.h>
 #include <time.h>
+#include "app.h"
 
 Detector detector;
 
@@ -98,16 +99,24 @@ void Detector::push(const Sample& s) {
       if (--stateLeft_ == 0) state_ = IDLE;
       break;
     case IDLE:
-      // require >= 3 samples above threshold within 15 ms so a single 1 ms glitch never triggers
+      // require >= 4 samples above threshold within 15 ms so a single 1 ms glitch or tap never triggers
       if (dyn > thr_) {
         if (hits_ == 0) {
           trigHead_ = head_ - 1;
-          hitWin_ = max<uint16_t>(3, rate_ * 15 / 1000);
+          hitWin_ = max<uint16_t>(4, rate_ * 15 / 1000);
           capPeak_ = dyn;
+          capGyroPeak_ = 0;
+          if (app::accel()) app::accel()->orientation(trigOri_);
         } else if (dyn > capPeak_) {
           capPeak_ = dyn;
         }
-        if (++hits_ >= 3) {
+        if (app::accel()) {
+          float w[3] = {};
+          app::accel()->gyro(w);
+          const float gw = sqrtf(w[0] * w[0] + w[1] * w[1] + w[2] * w[2]);
+          if (gw > capGyroPeak_) capGyroPeak_ = gw;
+        }
+        if (++hits_ >= 4) {
           captured_ = head_ - trigHead_;
           quiet_ = hangN_;
           hits_ = 0;
@@ -117,12 +126,19 @@ void Detector::push(const Sample& s) {
       } else if (hitWin_ > 0 && --hitWin_ == 0) {
         hits_ = 0;
         capPeak_ = 0;
+        capGyroPeak_ = 0;
       }
       break;
     case CAPTURE:
       // adaptive window: at least WIN_POST_MS, longer while ze signal keeps moving (re-arming ze
       // trap takes seconds), ends WIN_HANGOVER_MS after it went quiet, never longer than WIN_MAX_MS
       if (dyn > capPeak_) capPeak_ = dyn;
+      if (app::accel()) {
+        float w[3] = {};
+        app::accel()->gyro(w);
+        const float gw = sqrtf(w[0] * w[0] + w[1] * w[1] + w[2] * w[2]);
+        if (gw > capGyroPeak_) capGyroPeak_ = gw;
+      }
       captured_++;
       if (dyn > noiseThr) quiet_ = hangN_;
       else if (quiet_) quiet_--;
@@ -152,6 +168,15 @@ void Detector::emitWindow() {
   w->trig = preN_;
   w->n = preN_ + curPostN_;
   w->thresholdG = thr_;
+  w->gyroPeakDps = capGyroPeak_;
+  float endOri[3] = {};
+  if (app::accel()) app::accel()->orientation(endOri);
+  float dRoll = fabsf(endOri[0] - trigOri_[0]);
+  if (dRoll > 180.0f) dRoll = 360.0f - dRoll;
+  float dPitch = fabsf(endOri[1] - trigOri_[1]);
+  if (dPitch > 180.0f) dPitch = 360.0f - dPitch;
+  w->deltaTiltDeg = sqrtf(dRoll * dRoll + dPitch * dPitch);
+  capGyroPeak_ = 0;
   const uint32_t start = trigHead_ - preN_;
   for (uint16_t i = 0; i < w->n; i++) {
     const int16_t* r = ring_[(start + i) & (RING_SAMPLES - 1)];

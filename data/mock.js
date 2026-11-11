@@ -39,7 +39,7 @@
     const best = pr.p >= 0.5 ? 'snap' : (peak > 0.4 ? 'bump' : peak > 0.12 ? 'footstep' : 'mouse');
     const e = { id, ts: Math.floor(Date.now() / 1000), ago_ms: 0, peak_g: peak, cls: best, snap_p: pr.p, method: pr.method,
       candidate: !!st.armed, sample_id: 0, probs: pr.probs,
-      features: { peak_log: Math.log10(peak), rms_log: Math.log10(peak / 4), jerk_log: 2.5, duration_ms: 80, zcr_hz: PROFILE[cls][1], band_0_30: 0.1, band_30_100: 0.2, band_100_250: 0.5, band_250_top: 0.2, axis_dom: 0.6, settle_ms: 90, peaks: 7 } };
+      features: { peak_log: Math.log10(peak), rms_log: Math.log10(peak / 4), jerk_log: 2.5, duration_ms: 80, zcr_hz: PROFILE[cls][1], band_0_30: 0.1, band_30_100: 0.2, band_100_250: 0.5, band_250_top: 0.2, axis_dom: 0.6, settle_ms: 90, peaks: 7, gyro_log: cls === 'snap' ? 2.4 : 0.8, delta_tilt: cls === 'snap' ? 4.5 : 0.2, axis_z: cls === 'snap' ? 0.75 : 0.3 } };
     if (st.armed) { e.test_label = st.armed; st.armed = null; }
     st.events++;
     recent.unshift(e); recent.splice(6);

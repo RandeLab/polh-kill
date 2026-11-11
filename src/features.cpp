@@ -3,9 +3,10 @@
 
 const char* const FEATURE_NAMES[NFEAT] = {
     "peak_log", "rms_log", "jerk_log", "duration_ms", "zcr_hz", "band_0_30",
-    "band_30_100", "band_100_250", "band_250_top", "axis_dom", "settle_ms", "peaks"};
-const float FEATURE_CENTER[NFEAT] = {0.0f, -1.0f, 2.0f, 200, 100, 0.25f, 0.25f, 0.25f, 0.25f, 0.6f, 200, 5};
-const float FEATURE_SCALE[NFEAT] = {1.0f, 1.0f, 1.0f, 300, 150, 0.25f, 0.25f, 0.25f, 0.25f, 0.2f, 300, 5};
+    "band_30_100", "band_100_250", "band_250_top", "axis_dom", "settle_ms", "peaks",
+    "gyro_log", "delta_tilt", "axis_z"};
+const float FEATURE_CENTER[NFEAT] = {0.0f, -1.0f, 2.0f, 200, 100, 0.25f, 0.25f, 0.25f, 0.25f, 0.6f, 200, 5, 1.0f, 2.0f, 0.33f};
+const float FEATURE_SCALE[NFEAT] = {1.0f, 1.0f, 1.0f, 300, 150, 0.25f, 0.25f, 0.25f, 0.25f, 0.2f, 300, 5, 1.0f, 10.0f, 0.3f};
 
 namespace {
 
@@ -134,4 +135,9 @@ void computeFeatures(const EventWindow& w, float out[NFEAT]) {
     out[F_SETTLE_MS] = (settle - peakIdx) * 1000.0f / rate;
     out[F_PEAKS] = peaks;
   }
+
+  // multi-sensor fusion: rotational angular velocity, tilt delta, perpendicular base impact share
+  out[F_GYRO_LOG] = log10f(max(w.gyroPeakDps, 0.05f));
+  out[F_DELTA_TILT] = w.deltaTiltDeg;
+  out[F_AXIS_Z] = e[2] / etot;
 }

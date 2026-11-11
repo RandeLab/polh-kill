@@ -41,7 +41,7 @@ constexpr int   LIVE_RATE_HZ      = 50;     // live plot points per second
 // ---------------- learning ----------------
 constexpr int   MAX_CLASSES       = 12;     // 5 built-in + custom ones (classes.cpp)
 constexpr int   MAX_TG_USERS      = 10;     // Telegram subscribers of one bot (owner + 9 comrades)
-constexpr int   NFEAT             = 12;     // see features.h for names
+constexpr int   NFEAT             = 15;     // 12 accel + gyroPeak + deltaTilt + axisZRatio
 constexpr int   RECENT_EVENTS     = 6;      // raw windows kept in RAM
 constexpr int   RAW_BUDGET_BLOCKS = 640;    // raw windows on flash, counted in 4 kB blocks (~2.6 of 6 MB):
                                             // 1 s window = 2 blocks, 2.5 s = 4. A nearly full LittleFS walks ze
