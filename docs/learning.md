@@ -1,73 +1,92 @@
-# How polh-kill learns
+# How polh-kill learns: Edge ML & Data Architecture
 
-> "Ze trap does not know what a snap is. It must be taught. Like all of us, by ze big Other."
+> *"Ze trap does not know what a snap is. It must be taught. Like all of us, by ze big Other."*
+
+---
 
 ## 1. Detecting that *something* happened
 
-The MPU is read at 1 kHz from its FIFO. For every sample (`src/detector.cpp`):
+The MPU-6500 is sampled at a continuous **1,000 Hz** rate across 3 axes of acceleration and 3 axes of gyroscope telemetry (`src/detector.cpp` & `src/sensor_mpu6500.cpp`):
 
-1. **Gravity** per axis is tracked with a slow exponential moving average (τ = 2 s) and subtracted.
-   What remains is the *dynamic* acceleration `|a_dyn|`.
-2. The **noise floor** (mean and variance of `|a_dyn|`) is tracked recursively (τ = 5 s), but only
-   while nothing is happening. The floor adapts to the place: a quiet cellar, a washing machine…
-3. **Trigger** when `|a_dyn| > max(min_g, mean + k·σ)` (defaults `k = 6`, `min_g = 0.05 g`).
-4. A **window** of 200 ms before the trigger and at least 800 ms after it is cut from a ring buffer. While ze signal keeps moving the window grows (re-arming ze trap takes seconds); it ends 400 ms after things went quiet and is **never longer than 2.5 s** in total.
-   (1000 samples × xyz, milli-g), then 300 ms dead time.
+1. **Gravity separation:** Gravity $\vec{g}$ per axis is tracked with a slow exponential moving average ($\tau = 2\text{ s}$) and subtracted. What remains is the dynamic acceleration $\vec{a}_{\text{dyn}}$.
+2. **Noise floor tracking:** The baseline vibration mean and variance ($\sigma_{\text{floor}}$) are tracked recursively ($\tau = 5\text{ s}$) during quiet periods. The floor adapts automatically whether placed in a cellar, a barn, or next to a washing machine.
+3. **Trigger confirmation:** Trigger condition:
+   $$\text{Threshold} = \max(\text{min\_g}, \, \mu_{\text{floor}} + k \cdot \sigma_{\text{floor}})$$
+   *(Defaults: $k = 8.0$, $\text{min\_g} = 0.20\text{ g}$)*.
+   To reject typing or table nudges, **4 consecutive samples** ($4\text{ ms}$) above threshold within a $15\text{ ms}$ window are required before committing an event.
+4. **Windowing:** A window of **$200\text{ ms}$ pre-trigger** and at least **$800\text{ ms}$ post-trigger** is captured from a circular buffer. If motion continues (e.g. setting the spring bar), the window dynamically extends up to **$2.5\text{ s}$**, ending $400\text{ ms}$ after motion ceases, followed by a $300\text{ ms}$ refractory dead time.
 
-## 2. Features (`src/features.cpp`)
+---
 
-| feature | idea |
+## 2. 15-Dimensional Multi-Sensor Features (`src/features.cpp`)
+
+Every raw vibration wave ($1,000\text{–}2,500$ samples $\times$ 6 axes) is reduced to a 15-parameter feature vector $\vec{f} \in \mathbb{R}^{15}$:
+
+| Feature | Idea & Physical Meaning |
 |---|---|
-| `peak_log` | log10 of the peak, a snap is a few g, a footstep a few hundred mg |
-| `rms_log` | energy after the trigger |
-| `jerk_log` | how *sudden* it is — the spring bar is brutal |
-| `duration_ms` | time above the threshold |
-| `zcr_hz` | zero crossings on the dominant axis ≈ ringing frequency |
-| `band_*` | spectral energy fractions 0-30 / 30-100 / 100-250 / 250-500 Hz (256-pt FFT) |
-| `axis_dom` | is it one direction (bar hits the base) or everywhere |
-| `settle_ms` | ring-down time |
-| `peaks` | number of separate hits (bar bounces) |
+| `peak_log` | $\log_{10}$ of peak dynamic acceleration (snap: $> 5\text{–}20\text{ g}$, footstep: $\approx 0.1\text{–}0.3\text{ g}$). |
+| `rms_log` | Total vibration energy density after the trigger. |
+| `jerk_log` | Derivative $\frac{da}{dt}$ — spring snap release is acoustically violent ($> 10^4\text{ g/s}$). |
+| `duration_ms` | Milliseconds the vibration stays above noise threshold. |
+| `zcr_hz` | Zero-crossing rate on dominant axis (ringing frequency). |
+| `band_0_30` | Sub-bass energy fraction ($0\text{–}30\text{ Hz}$, heavy floor footsteps). |
+| `band_30_100` | Low-mid energy fraction ($30\text{–}100\text{ Hz}$, table bumps). |
+| `band_100_250`| Structural resonance fraction ($100\text{–}250\text{ Hz}$, spring vibration). |
+| `band_250_top`| Acoustic snap shock fraction ($250\text{–}500\text{ Hz}$). |
+| `axis_dom` | Spatial directivity ratio ($\max(E_x,E_y,E_z) / E_{\text{total}}$). |
+| `settle_ms` | Ring-down decay time to $10\%$ peak amplitude. |
+| `peaks` | Count of distinct shock echoes / bar bounces. |
+| `gyro_log` | $\log_{10}$ of peak angular rotational velocity ($\omega$ in $^\circ/\text{s}$). |
+| `delta_tilt` | Total angular orientation change ($\Delta\theta$) before vs. after trigger. |
+| `axis_z` | Direct perpendicular vertical impact fraction into the wooden base. |
 
-## 3. Recursive learning (`src/classifier.cpp`)
+---
 
-Every labelled sample updates the model **immediately**, no batch retraining:
+## 3. Online Recursive Learning (`src/classifier.cpp`)
 
-- **Gaussian naive Bayes** over the 6 built-in classes (snap, bump, footstep, mouse, other,
-  armed-trap) plus your own ones: running sums
-  per class and feature. Adding a sample is O(features). Priors are Laplace-smoothed, variances
-  have a floor so 2-3 samples do not make the model overconfident.
-- **Recursive least squares (RLS)** linear model for *snap vs. not-snap*, with forgetting factor
-  λ = 0.998, so old samples fade slowly when the trap moves:
+Every labelled sample updates the model **immediately in $\approx 1\text{ }\mu\text{s}$**, with zero batch retraining:
 
-  ```
-  k = P x / (λ + xᵀ P x)
-  w = w + k (y - wᵀ x)
-  P = (P - k xᵀ P) / λ
-  ```
+- **Gaussian Naive Bayes:** Running sum ($S = \sum f$) and sum of squares ($SS = \sum f^2$) per feature and class. From these two values, the exact mean ($\mu$) and standard deviation ($\sigma$) are calculated on the fly. A variance floor prevents overfitting when samples are sparse.
+- **Recursive Least Squares (RLS):** Linear target model for *snap vs. not-snap* with forgetting factor $\lambda = 0.998$:
+  $$k = \frac{P x}{\lambda + x^T P x}, \qquad w \leftarrow w + k (y - w^T x), \qquad P \leftarrow \frac{P - k x^T P}{\lambda}$$
+- **Heuristic fallback:** If fewer than two classes have data, peak acceleration ($> 1.0\text{ g}$) acts as the trigger.
+- **Ensemble Fusion:** When both `snap` and background have $\ge 3$ samples, $\text{snap\_p}$ blends Bayes ($50\%$) and RLS ($50\%$).
+- **Alert Dispatch:**
+  * $\text{snap\_p} \ge 0.70$ $\rightarrow$ Immediate Telegram alert (`@Ze_trap_bot`).
+  * $0.35 \le \text{snap\_p} < 0.70$ $\rightarrow$ Telegram asks *"what was it?"* with inline buttons to learn from your response.
 
-- **Heuristic** (peak > `snap_g` and short) as long as fewer than two classes have data.
-- Final `snap_p` = average of Bayes P(snap) and the RLS score (through a sigmoid) once both
-  snap and non-snap have ≥ 3 samples.
+---
 
-Decisions: `snap_p ≥ alert_p` (0.70) → Telegram alert. `unsure_p ≤ snap_p < alert_p` → Telegram
-asks "what was it?" with buttons, and your answer becomes a new training sample.
+## 4. 4-Tier Data Persistence
 
-## 4. Data
+1. **Hardware Flash (`/dataset` partition):**
+   * Stored in dedicated 6 MB LittleFS flash memory.
+   * `/ds/index2.bin`: Binary records of all 15 features and labels across all events.
+   * `/ds/w*.bin`: Raw 1,000 Hz 3-axis waveforms (budget of $2.56\text{ MB}$).
+   * Survives power loss and firmware updates.
+2. **Interactive Web Interface:**
+   * **`📚 Dataset` tab** (`/#data`): View all events, waveform graphs (`📈`), and download `samples.csv`.
+   * **`🧪 Learning lab` tab** (`/#lab`): Confusion matrix, class distributions, and Leave-One-Out validation.
+3. **Local Computer Backup:**
+   * Stored in workspace at [`dataset/samples.csv`](../dataset/samples.csv).
+4. **Cloud Archive (GitHub Pages):**
+   * The ESP32 background task pushes batches to branch [`origin/gh-pages`](https://github.com/RandeLab/polh-kill/tree/gh-pages) over WiFi.
+   * Contains `data/samples.csv`, individual raw waveforms under `data/captures/*.json`, and `data/model.json`.
+   * Live dashboard: **[randelab.github.io/polh-kill](https://randelab.github.io/polh-kill/)**.
 
-- Labelled samples live on their own flash partition (`dataset`, ~6 MB), so updating the web UI
-  or firmware never erases them. Features of every sample are kept; raw windows for ze newest ones within a budget of ~2.6 MB (640 flash blocks; a 1 s window takes 2, a 2.5 s window 4).
-- The model is fully defined by the dataset: on boot (and after relabel/delete) it is rebuilt by
-  replaying all samples — same result as the incremental updates.
-- **Leave-one-out** test in the learning lab: every sample is classified by a model that has not
-  seen it. Confusion matrix, accuracy, snap recall/precision.
-- `/api/export.csv` exports all features for offline work (pandas, a notebook, and so on).
+---
 
-## 5. How to record good data
+## 5. How to train a resilient model
 
-1. Mount the sensor where it will stay (see [wiring.md](wiring.md)).
-2. Learning lab → choose **snap** → *arm test* → let the trap snap (with a pencil, not a finger).
-   Use **series mode** to do 10-20 in a row. Vary: empty trap, with bait, different places.
-3. Then **bump** (knock the table/floor), **footstep** (walk past), **mouse** (scratch, nibble
-   the bait with a brush), **other** (door slams, washing machine), **armed-trap** 🪤 (re-arming
-   ze trap after a snap: pull ze spring, set ze bar, place it - a long but very typical pattern).
-4. Look at the confusion matrix. If snaps are confused with bumps: more of both, from closer.
+1. **Ambient & negative classes:**
+   * `bump`: Knock the table/floor from different distances.
+   * `mouse`: Light scratches and nibbles on the bait plate with a pencil or brush.
+   * `footstep`: Walk past the setup at normal pacing.
+   * `trap-armed`: Set the spring bar, place the arming rod (records the angular tilt shift).
+   * `other`: Door slams, speech, chair movement.
+2. **The positive class (`snap`):**
+   * Arm the trap.
+   * Use a stick or pencil to trigger the bait pedal.
+   * Label the event as **`💥 snap`**.
+   * Record $5\text{–}10$ snaps with empty trap and baited trap.
+3. **Verify:** Check the Leave-One-Out confusion matrix on the `🧪 Learning lab` tab. When snaps achieve $100\%$ precision/recall, your edge detector is ready for unattended deployment!
